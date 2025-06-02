@@ -38,7 +38,9 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
     "return 400 BAD_REQUEST with correct error message for invalid nino" in {
       val result = controller.getMtdId("ss666666b")(fakeRequest)
       status(result) shouldBe Status.BAD_REQUEST
-      contentAsJson(result) shouldBe Json.obj("message" -> "Invalid national insurance number supplied")
+      contentAsJson(result) shouldBe Json.obj(
+        "message" -> "Invalid national insurance number supplied"
+      )
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message when service unavailable" in {
