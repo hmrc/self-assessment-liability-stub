@@ -1,3 +1,3 @@
 # microservice specific routes
 
-GET        /hello-world             uk.gov.hmrc.selfassessmentliabilitystub.controllers.MicroserviceHelloWorldController.hello
+GET        /mtd-identifier-lookup/nino/:nino             controllers.MtdIdLookupController.getMtdId(nino)

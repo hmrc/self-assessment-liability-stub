@@ -13,6 +13,7 @@ lazy val microservice = Project("self-assessment-liability-stub", file("."))
   )
   .settings(resolvers += Resolver.jcenterRepo)
   .settings(CodeCoverageSettings.settings: _*)
+  .settings(PlayKeys.playDefaultPort := 6565)
 
 lazy val it = project
   .enablePlugins(PlayScala)
