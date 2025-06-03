@@ -1,3 +1,4 @@
 # microservice specific routes
 
 GET        /hello-world             uk.gov.hmrc.selfassessmentliabilitystub.controllers.MicroserviceHelloWorldController.hello
+GET        /citizen-details/sautr/:taxId             controllers.CitizenDetailsController.getNino(taxId)
