@@ -43,19 +43,19 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents) extends Back
   """
 
   def getNino(utr: String): Action[AnyContent] = Action.async { implicit request =>
-    if (utr.equalsIgnoreCase("EE999400E")) {
+    if (utr.equalsIgnoreCase("0000000400")) {
       Future.successful(
         BadRequest(Json.obj("message" -> "Invalid SaUtr."))
       )
-    } else if (utr.equalsIgnoreCase("EE999404E")) {
+    } else if (utr.equalsIgnoreCase("0000000404")) {
       Future.successful(
         NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))
       )
-    } else if (utr.equalsIgnoreCase("EE999500E")) {
+    } else if (utr.equalsIgnoreCase("0000000500")) {
       Future.successful(
         InternalServerError(Json.obj("message" -> "More than one valid matching result."))
       )
-    } else if (utr.equalsIgnoreCase("EE999500F")) {
+    } else if (utr.equalsIgnoreCase("1000000500")) {
       Future.successful(
         InternalServerError(Json.obj("message" -> "Service currently unavailable"))
       )
