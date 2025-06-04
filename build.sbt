@@ -1,7 +1,7 @@
 import uk.gov.hmrc.DefaultBuildSettings
 
 ThisBuild / majorVersion := 0
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "3.6.4"
 
 lazy val microservice = Project("self-assessment-liability-stub", file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
@@ -13,6 +13,7 @@ lazy val microservice = Project("self-assessment-liability-stub", file("."))
   )
   .settings(resolvers += Resolver.jcenterRepo)
   .settings(CodeCoverageSettings.settings: _*)
+  .settings(PlayKeys.playDefaultPort := 6565)
 
 lazy val it = project
   .enablePlugins(PlayScala)
