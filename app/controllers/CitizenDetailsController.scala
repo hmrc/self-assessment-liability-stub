@@ -24,7 +24,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class CitizenDetailsController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
+class CitizenDetailsController @Inject() (cc: ControllerComponents) extends BackendController(cc) with StubData {
 
   def generateSuccessResponse(nino: String): String = {
     s"""
@@ -45,33 +45,33 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents) extends Back
   }
 
   def getNino(utr: String): Action[AnyContent] = Action.async { implicit request =>
-    if (utr.equalsIgnoreCase("0000000400")) {
+    if (utr.equalsIgnoreCase(badUtrInvalid)) {
       Future.successful(
         BadRequest(Json.obj("message" -> "Invalid SaUtr."))
       )
-    } else if (utr.equalsIgnoreCase("0000000404")) {
+    } else if (utr.equalsIgnoreCase(badUtrNone)) {
       Future.successful(
         NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))
       )
-    } else if (utr.equalsIgnoreCase("0000000500")) {
+    } else if (utr.equalsIgnoreCase(badUtrMultiple)) {
       Future.successful(
         InternalServerError(Json.obj("message" -> "More than one valid matching result."))
       )
-    } else if (utr.equalsIgnoreCase("1000000500")) {
+    } else if (utr.equalsIgnoreCase(badUtrServerError)) {
       Future.successful(
         InternalServerError(Json.obj("message" -> "Service currently unavailable"))
       )
-    } else if (utr.equalsIgnoreCase("0666666200")) {
+    } else if (utr.equalsIgnoreCase(badUtrNinoInvalid)) {
       Future.successful(
-        Ok(Json.parse(generateSuccessResponse("ss666666b")))
+        Ok(Json.parse(generateSuccessResponse(badNinoInvalid)))
       )
-    } else if (utr.equalsIgnoreCase("0777777200")) {
+    } else if (utr.equalsIgnoreCase(badUtrNinoServerError)) {
       Future.successful(
-        Ok(Json.parse(generateSuccessResponse("ss777777b")))
+        Ok(Json.parse(generateSuccessResponse(badNinoServerError)))
       )
     } else {
       Future.successful(
-        Ok(Json.parse(generateSuccessResponse("AA055075C")))
+        Ok(Json.parse(generateSuccessResponse(validNino)))
       )
     }
   }
