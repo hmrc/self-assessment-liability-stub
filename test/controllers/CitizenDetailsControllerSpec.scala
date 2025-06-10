@@ -28,11 +28,34 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new CitizenDetailsController(Helpers.stubControllerComponents())
 
+  "Generating a success response" should {
+    val expectedResponse: String =
+    s"""
+    {
+      "name": {
+        "current": {
+          "firstName": "John",
+          "lastName": "Smith"
+        },
+        "previous": []
+      },
+      "ids": {
+        "nino": "123456789"
+      },
+      "dateOfBirth": "11121971"
+    }
+    """
+
+    "return a hard-coded response with the given string as the NINO" in {
+      controller.generateSuccessResponse("123456789") shouldBe expectedResponse
+    }
+  }
+
   "GET /" should {
     "return 200 with correct NINO for a valid UTR" in {
       val result = controller.getNino("any other UTR")(fakeRequest)
       status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.parse(controller.validSuccessResponse)
+      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse("AA055075C"))
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid UTR" in {
@@ -65,6 +88,18 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
       contentAsJson(result) shouldBe Json.obj(
         "message" -> "Service currently unavailable"
       )
+    }
+
+    "return 200 with invalid NINO for a specific UTR" in {
+      val result = controller.getNino("0666666200")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse("ss666666b"))
+    }
+
+    "return 200 with server error NINO for a specific UTR" in {
+      val result = controller.getNino("0777777200")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse("ss777777b"))
     }
   }
 }

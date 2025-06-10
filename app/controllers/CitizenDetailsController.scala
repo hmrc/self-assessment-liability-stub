@@ -26,21 +26,23 @@ import scala.concurrent.Future
 @Singleton()
 class CitizenDetailsController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
-  val validSuccessResponse: String = """
-  {
-    "name": {
-      "current": {
-        "firstName": "John",
-        "lastName": "Smith"
+  def generateSuccessResponse(nino: String): String = {
+    s"""
+    {
+      "name": {
+        "current": {
+          "firstName": "John",
+          "lastName": "Smith"
+        },
+        "previous": []
       },
-      "previous": []
-    },
-    "ids": {
-      "nino": "AA055075C"
-    },
-    "dateOfBirth": "11121971"
+      "ids": {
+        "nino": "$nino"
+      },
+      "dateOfBirth": "11121971"
+    }
+    """
   }
-  """
 
   def getNino(utr: String): Action[AnyContent] = Action.async { implicit request =>
     if (utr.equalsIgnoreCase("0000000400")) {
@@ -59,9 +61,17 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents) extends Back
       Future.successful(
         InternalServerError(Json.obj("message" -> "Service currently unavailable"))
       )
+    } else if (utr.equalsIgnoreCase("0666666200")) {
+      Future.successful(
+        Ok(Json.parse(generateSuccessResponse("ss666666b")))
+      )
+    } else if (utr.equalsIgnoreCase("0777777200")) {
+      Future.successful(
+        Ok(Json.parse(generateSuccessResponse("ss777777b")))
+      )
     } else {
       Future.successful(
-        Ok(Json.parse(validSuccessResponse))
+        Ok(Json.parse(generateSuccessResponse("AA055075C")))
       )
     }
   }
