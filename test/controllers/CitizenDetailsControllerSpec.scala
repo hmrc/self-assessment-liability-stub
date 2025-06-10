@@ -29,8 +29,9 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
   private val controller = new CitizenDetailsController(Helpers.stubControllerComponents())
 
   "Generating a success response" should {
-    val expectedResponse: String =
-    s"""
+    "return a hard-coded response with the given string as the NINO" in {
+      val expectedResponse: String =
+        s"""
     {
       "name": {
         "current": {
@@ -45,8 +46,6 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
       "dateOfBirth": "11121971"
     }
     """
-
-    "return a hard-coded response with the given string as the NINO" in {
       controller.generateSuccessResponse("123456789") shouldBe expectedResponse
     }
   }
