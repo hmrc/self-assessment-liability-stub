@@ -23,18 +23,25 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
+object MtdIdLookupController {
+  final val badNinoInvalid:     String = "ss666666b"
+  final val badNinoServerError: String = "ss777777b"
+
+  final val validMtditid: String = "XQIT00000000001"
+}
+
 @Singleton()
 class MtdIdLookupController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
   def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
-    if (nino.equalsIgnoreCase("ss666666b")) {
+    if (nino.equalsIgnoreCase(MtdIdLookupController.badNinoInvalid)) {
       Future.successful(
         BadRequest(Json.obj("message" -> "Invalid national insurance number supplied"))
       )
-    } else if (nino.equalsIgnoreCase("ss777777b")) {
+    } else if (nino.equalsIgnoreCase(MtdIdLookupController.badNinoServerError)) {
       Future.successful(InternalServerError(Json.obj("message" -> "Service currently unavailable")))
     } else {
-      Future.successful(Ok(Json.obj("mtdbsa" -> "XQIT00000000001")))
+      Future.successful(Ok(Json.obj("mtdbsa" -> MtdIdLookupController.validMtditid)))
     }
   }
 }
