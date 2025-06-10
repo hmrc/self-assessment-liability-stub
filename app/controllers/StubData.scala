@@ -17,15 +17,15 @@
 package controllers
 
 trait StubData {
-  final val badUtrInvalid:         String = "0000000400"
-  final val badUtrNone:            String = "0000000404"
-  final val badUtrMultiple:        String = "0000000500"
-  final val badUtrServerError:     String = "1000000500"
-  final val badUtrNinoInvalid:     String = "0666666200"
+  final val badUtrInvalid: String = "0000000400"
+  final val badUtrNone: String = "0000000404"
+  final val badUtrMultiple: String = "0000000500"
+  final val badUtrServerError: String = "1000000500"
+  final val badUtrNinoInvalid: String = "0666666200"
   final val badUtrNinoServerError: String = "0777777200"
 
-  final val validNino:          String = "AA055075C"
-  final val badNinoInvalid:     String = "ss666666b"
+  final val validNino: String = "AA055075C"
+  final val badNinoInvalid: String = "ss666666b"
   final val badNinoServerError: String = "ss777777b"
 
   final val validMtditid: String = "XQIT00000000001"

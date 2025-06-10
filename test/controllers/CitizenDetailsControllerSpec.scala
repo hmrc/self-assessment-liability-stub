@@ -98,7 +98,9 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers with StubDa
     "return 200 with server error NINO for a specific UTR" in {
       val result = controller.getNino(badUtrNinoServerError)(fakeRequest)
       status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse(badNinoServerError))
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(badNinoServerError)
+      )
     }
   }
 }

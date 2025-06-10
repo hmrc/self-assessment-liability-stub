@@ -24,7 +24,9 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class MtdIdLookupController @Inject() (cc: ControllerComponents) extends BackendController(cc) with StubData {
+class MtdIdLookupController @Inject() (cc: ControllerComponents)
+    extends BackendController(cc)
+    with StubData {
 
   def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
     if (nino.equalsIgnoreCase(badNinoInvalid)) {
