@@ -24,17 +24,19 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class MtdIdLookupController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
+class MtdIdLookupController @Inject() (cc: ControllerComponents)
+    extends BackendController(cc)
+    with StubData {
 
   def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
-    if (nino.equalsIgnoreCase("ss666666b")) {
+    if (nino.equalsIgnoreCase(badNinoInvalid)) {
       Future.successful(
         BadRequest(Json.obj("message" -> "Invalid national insurance number supplied"))
       )
-    } else if (nino.equalsIgnoreCase("ss777777b")) {
+    } else if (nino.equalsIgnoreCase(badNinoServerError)) {
       Future.successful(InternalServerError(Json.obj("message" -> "Service currently unavailable")))
     } else {
-      Future.successful(Ok(Json.obj("mtdbsa" -> "XQIT00000000001")))
+      Future.successful(Ok(Json.obj("mtdbsa" -> validMtditid)))
     }
   }
 }

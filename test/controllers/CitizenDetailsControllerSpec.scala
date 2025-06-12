@@ -23,20 +23,42 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 
-class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
+class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers with StubData {
 
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new CitizenDetailsController(Helpers.stubControllerComponents())
+
+  "Generating a success response" should {
+    "return a hard-coded response with the given string as the NINO" in {
+      val expectedResponse: String =
+        s"""
+    {
+      "name": {
+        "current": {
+          "firstName": "John",
+          "lastName": "Smith"
+        },
+        "previous": []
+      },
+      "ids": {
+        "nino": "123456789"
+      },
+      "dateOfBirth": "11121971"
+    }
+    """
+      controller.generateSuccessResponse("123456789") shouldBe expectedResponse
+    }
+  }
 
   "GET /" should {
     "return 200 with correct NINO for a valid UTR" in {
       val result = controller.getNino("any other UTR")(fakeRequest)
       status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.parse(controller.validSuccessResponse)
+      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse(validNino))
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid UTR" in {
-      val result = controller.getNino("0000000400")(fakeRequest)
+      val result = controller.getNino(badUtrInvalid)(fakeRequest)
       status(result) shouldBe Status.BAD_REQUEST
       contentAsJson(result) shouldBe Json.obj(
         "message" -> "Invalid SaUtr."
@@ -44,7 +66,7 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 404 NOT_FOUND with correct error message for no matching UTR" in {
-      val result = controller.getNino("0000000404")(fakeRequest)
+      val result = controller.getNino(badUtrNone)(fakeRequest)
       status(result) shouldBe Status.NOT_FOUND
       contentAsJson(result) shouldBe Json.obj(
         "message" -> "No record for the given SaUtr is found."
@@ -52,7 +74,7 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message for multiple matching UTRs" in {
-      val result = controller.getNino("0000000500")(fakeRequest)
+      val result = controller.getNino(badUtrMultiple)(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.obj(
         "message" -> "More than one valid matching result."
@@ -60,10 +82,24 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message when service unavailable" in {
-      val result = controller.getNino("1000000500")(fakeRequest)
+      val result = controller.getNino(badUtrServerError)(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.obj(
         "message" -> "Service currently unavailable"
+      )
+    }
+
+    "return 200 with invalid NINO for a specific UTR" in {
+      val result = controller.getNino(badUtrNinoInvalid)(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse(badNinoInvalid))
+    }
+
+    "return 200 with server error NINO for a specific UTR" in {
+      val result = controller.getNino(badUtrNinoServerError)(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(badNinoServerError)
       )
     }
   }
