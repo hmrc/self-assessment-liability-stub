@@ -21,7 +21,5 @@ import play.api.libs.json.{Json, OFormat}
 case class HipQuery(utr: String, startDate: String, endDate: String) {}
 
 object HipQuery {
-  // $COVERAGE-OFF$
   implicit val format: OFormat[HipQuery] = Json.format[HipQuery]
-  // $COVERAGE-ON$
 }
