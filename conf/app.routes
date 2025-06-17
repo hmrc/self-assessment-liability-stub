@@ -1,4 +1,5 @@
 # microservice specific routes
 
-GET        /mtd-identifier-lookup/nino/:nino            controllers.MtdIdLookupController.getMtdId(nino)
 GET        /citizen-details/sautr/:utr                  controllers.CitizenDetailsController.getNino(utr)
+GET        /mtd-identifier-lookup/nino/:nino            controllers.MtdIdLookupController.getMtdId(nino)
+GET        /sa-payments-data                            controllers.HipController.getSelfAssessmentData()
