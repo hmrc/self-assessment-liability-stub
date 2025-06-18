@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package controllers
+package utils.constants
 
-trait StubData {
+object RequestResponseConstants {
   final val badUtrInvalid: String = "0000000400"
   final val badUtrNone: String = "0000000404"
   final val badUtrMultiple: String = "0000000500"

@@ -16,6 +16,8 @@
 
 package controllers
 
+import utils.constants.RequestResponseConstants.*
+
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -25,8 +27,7 @@ import scala.concurrent.Future
 
 @Singleton()
 class CitizenDetailsController @Inject() (cc: ControllerComponents)
-    extends BackendController(cc)
-    with StubData {
+    extends BackendController(cc) {
 
   def generateSuccessResponse(nino: String): String = {
     s"""
