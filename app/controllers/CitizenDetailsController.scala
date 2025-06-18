@@ -26,8 +26,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class CitizenDetailsController @Inject() (cc: ControllerComponents)
-    extends BackendController(cc) {
+class CitizenDetailsController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
   def generateSuccessResponse(nino: String): String = {
     s"""
