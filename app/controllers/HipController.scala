@@ -16,6 +16,8 @@
 
 package controllers
 
+import utils.constants.RequestResponseConstants.*
+
 import model.HipQuery
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
@@ -25,9 +27,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class HipController @Inject() (cc: ControllerComponents)
-    extends BackendController(cc)
-    with StubData {
+class HipController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
   def getSelfAssessmentData: Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body
