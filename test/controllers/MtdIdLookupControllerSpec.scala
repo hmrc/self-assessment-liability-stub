@@ -23,7 +23,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 
-class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers with StubData {
+class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
 
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new MtdIdLookupController(Helpers.stubControllerComponents())
@@ -32,11 +32,11 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers with StubData 
     "return 200 with correct mtdbsa for a valid nino" in {
       val result = controller.getMtdId("ss686868d")(fakeRequest)
       status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.obj("mtdbsa" -> validMtditid)
+      contentAsJson(result) shouldBe Json.obj("mtdbsa" -> "XQIT00000000001")
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid nino" in {
-      val result = controller.getMtdId(badNinoInvalid)(fakeRequest)
+      val result = controller.getMtdId("ss666666b")(fakeRequest)
       status(result) shouldBe Status.BAD_REQUEST
       contentAsJson(result) shouldBe Json.obj(
         "message" -> "Invalid national insurance number supplied"
@@ -44,7 +44,7 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers with StubData 
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message when service unavailable" in {
-      val result = controller.getMtdId(badNinoServerError)(fakeRequest)
+      val result = controller.getMtdId("ss777777b")(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.obj("message" -> "Service currently unavailable")
     }
