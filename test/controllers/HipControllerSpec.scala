@@ -26,7 +26,7 @@ import play.api.test.{FakeRequest, Helpers}
 class HipControllerSpec extends AnyWordSpec with Matchers {
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new HipController(Helpers.stubControllerComponents())
-  private val validDateFrom: String = "2025-01-01T00:00:00.000-00:00"
+  private val validDateFrom: String = "2025-01-01"
   private val validHipJsonResponse: String = """{
   "balanceDetails": {
     "totalOverdueBalance": 500.00,
