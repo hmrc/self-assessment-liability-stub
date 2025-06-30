@@ -29,24 +29,25 @@ import scala.concurrent.Future
 @Singleton()
 class HipController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
-  def getSelfAssessmentData: Action[JsValue] = Action.async(parse.json) { implicit request =>
-    request.body
-      .validate[HipQuery]
-      .fold(
-        _ => {
-          Future.successful(
-            BadRequest(Json.obj("message" -> "Body of the request is not in the correct format"))
-          )
-        },
-        query =>
-          // TODO: Validate error scenarios.
-          if (query.utr.equalsIgnoreCase(badUtrHipServerError)) {
+  def getSelfAssessmentData(utr: String): Action[JsValue] = Action.async(parse.json) {
+    implicit request =>
+      request.body
+        .validate[HipQuery]
+        .fold(
+          _ => {
             Future.successful(
-              InternalServerError(Json.obj("message" -> "Service currently unavailable"))
+              BadRequest(Json.obj("message" -> "Body of the request is not in the correct format"))
             )
-          } else {
-            Future.successful(Ok(Json.toJson(validHipJsonResponse)))
-          }
-      )
+          },
+          query =>
+            // TODO: Validate error scenarios.
+            if (query.utr.equalsIgnoreCase(badUtrHipServerError)) {
+              Future.successful(
+                InternalServerError(Json.obj("message" -> "Service currently unavailable"))
+              )
+            } else {
+              Future.successful(Ok(Json.toJson(validHipJsonResponse)))
+            }
+        )
   }
 }
