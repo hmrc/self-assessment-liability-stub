@@ -16,7 +16,6 @@
 
 package controllers
 
-import model.HipQuery
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status
@@ -27,9 +26,7 @@ import play.api.test.{FakeRequest, Helpers}
 class HipControllerSpec extends AnyWordSpec with Matchers {
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new HipController(Helpers.stubControllerComponents())
-  private val validUtr: String = "1234567890"
-  private val validRequest: HipQuery = HipQuery("0000000200", "01012025", "01012025")
-  private val invalidRequest: HipQuery = HipQuery("0111111500", "01012025", "01012025")
+  private val validDateFrom: String = "2025-01-01T00:00:00.000-00:00"
   private val validHipJsonResponse: String = """{
   "balanceDetails": {
     "totalOverdueBalance": 500.00,
@@ -155,31 +152,95 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 }"""
 
   "GET /" should {
-    "return 400 BAD_REQUEST with correct error message for invalid request JSON format" in {
+    "return 200 with valid response JSON for a valid request" in {
       val result =
-        controller.getSelfAssessmentData(validUtr)(
-          fakeRequest.withBody(Json.toJson("invalid JSON."))
+        controller.getSelfAssessmentData("1234567890", validDateFrom)(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse)
+    }
+
+    "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
+      val result =
+        controller.getSelfAssessmentData("0111111400", validDateFrom)(
+          fakeRequest
         )
       status(result) shouldBe Status.BAD_REQUEST
       contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Body of the request is not in the correct format"
+        "message" -> "Submission has not passed validation. Invalid Correlation Id."
       )
     }
 
-    "return 500 INTERNAL_SERVER_ERROR with correct error message when service unavailable" in {
+    "return 401 UNAUTHORIZED with correct error message for invalid authentication credentials" in {
       val result =
-        controller.getSelfAssessmentData(validUtr)(
-          fakeRequest.withBody(Json.toJson(invalidRequest))
+        controller.getSelfAssessmentData("0111111401", validDateFrom)(
+          fakeRequest
         )
-      status(result) shouldBe Status.INTERNAL_SERVER_ERROR
-      contentAsJson(result) shouldBe Json.obj("message" -> "Service currently unavailable")
+      status(result) shouldBe Status.UNAUTHORIZED
+      contentAsJson(result) shouldBe Json.obj(
+        "message" -> "Invalid basic authentication credentials."
+      )
     }
 
-    "return 200 with valid response JSON for a valid request" in {
+    "return 403 FORBIDDEN with correct error message when authority is denied" in {
       val result =
-        controller.getSelfAssessmentData(validUtr)(fakeRequest.withBody(Json.toJson(validRequest)))
-      status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse)
+        controller.getSelfAssessmentData("0111111403", validDateFrom)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.FORBIDDEN
+      contentAsJson(result) shouldBe Json.obj(
+        "message" -> "User does not have authority to retrieve requested record."
+      )
+    }
+
+    "return 404 NOT_FOUND with correct error message when UTR is not found" in {
+      val result =
+        controller.getSelfAssessmentData("0111111404", validDateFrom)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.NOT_FOUND
+      contentAsJson(result) shouldBe Json.obj(
+        "message" -> "Identifier not found."
+      )
+    }
+
+    "return 422 UNPROCESSABLE_ENTITY with correct error message for invalid UTR" in {
+      val result =
+        controller.getSelfAssessmentData("0111111422", validDateFrom)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.UNPROCESSABLE_ENTITY
+      contentAsJson(result) shouldBe Json.obj(
+        "message" -> "Invalid utr entered."
+      )
+    }
+
+    "return 500 INTERNAL_SERVER_ERROR with correct error message for general internal server errors" in {
+      val result =
+        controller.getSelfAssessmentData("0111111500", validDateFrom)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.INTERNAL_SERVER_ERROR
+      contentAsJson(result) shouldBe Json.obj("message" -> "Internal server error.")
+    }
+
+    "return 502 BAD_GATEWAY with correct error message for service communication errors" in {
+      val result =
+        controller.getSelfAssessmentData("0111111502", validDateFrom)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.BAD_GATEWAY
+      contentAsJson(result) shouldBe Json.obj(
+        "message" -> "Error communicating with external service."
+      )
+    }
+
+    "return 503 SERVICE_UNAVAILABLE with correct error message when service unavailable" in {
+      val result =
+        controller.getSelfAssessmentData("0111111503", validDateFrom)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.SERVICE_UNAVAILABLE
+      contentAsJson(result) shouldBe Json.obj("message" -> "Service unavailable")
     }
   }
 }
