@@ -38,7 +38,7 @@ object RequestResponseConstants {
 
   final val validMtditid: String = "XQIT00000000001"
 
-  final val validHipJsonResponse: String = """{
+  final val validHipJsonResponse2023: String = """{
   "balanceDetails": {
     "totalOverdueBalance": 500.00,
     "totalPayableBalance": 500.00,
@@ -153,13 +153,121 @@ object RequestResponseConstants {
       "dateProcessed": "2024-12-08",
       "allocationReference": "EF2345678",
     },
-        {
+    {
       "paymentAmount": 200.00 ,
       "paymentReference": "PAY888233",
       "paymentMethod": "bank_transfer",
       "paymentDate": "2023-12-04"
       "dateProcessed": "2023-12-08",
       "allocationReference": "EF2345678",
+    }
+  ]
+}"""
+
+  final val validHipJsonResponse2024: String = """{
+  "balanceDetails": {
+    "totalOverdueBalance": 500.00,
+    "totalPayableBalance": 500.00,
+    "payableDueDate": "2025-04-31",
+    "totalPendingBalance": 1500.00,
+    "pendingDueDate": "2025-07-15",
+    "totalBalance": 2000.00,
+    "totalCodedOut": 250.00,
+    "totalCreditAvailable": 0.00
+  },
+  "chargeDetails": [
+    {
+      "chargeId": "AB1234567",
+      "creationDate": "2025-01-15",
+      "chargeType": "ITSA",
+      "chargeAmount": 1250.00,
+      "outstandingAmount": 500.00,
+      "taxYear": "2024-2025",
+      "dueDate": "2025-04-31",
+      "amendments": [
+        {
+          "amendmentId": "CD7654321",
+          "amendmentType": "payment",
+          "amendmentDate": "2025-04-15",
+          "amendmentAmount": 500.00,
+          "newChargeBalance": 750.00,
+          "paymentReference": "PAY123456",
+          "paymentMethod": "bank_transfer",
+          "paymentDate": "2025-04-10"
+        }
+      ],
+      "codedOutDetail": [
+        {
+          "amount": 250.00,
+          "codedChargeType": "ITSA",
+          "effectiveDate": "2025-04-01",
+          "taxYear": "2024-2025",
+          "effectiveTaxYear": "2025-2026"
+        }
+      ]
+    },
+    {
+      "chargeId": "KL3456789",
+      "creationDate": "2025-05-22",
+      "chargeType": "VATC",
+      "chargeAmount": 1500.00,
+      "outstandingAmount": 1500.00,
+      "taxYear": "2025-2026",
+      "dueDate": "2025-07-15"
+    }
+  ],
+  "refundDetails": [],
+  "paymentHistoryDetails": [
+    {
+      "paymentAmount": 500.00 ,
+      "paymentReference": "PAY123456",
+      "paymentMethod": "bank_transfer",
+      "paymentDate": "2025-04-11"
+      "dateProcessed": "2025-04-15",
+      "allocationReference": "AB1234567",
+    },
+    {
+      "paymentAmount": 2058.33 ,
+      "paymentReference": "PAY112233",
+      "paymentMethod": "bank_transfer",
+      "paymentDate": "2024-12-04"
+      "dateProcessed": "2024-12-08",
+      "allocationReference": "EF2345678",
+    }
+  ]
+}"""
+
+  final val validHipJsonResponse2025: String = """{
+  "balanceDetails": {
+    "totalOverdueBalance": 500.00,
+    "totalPayableBalance": 500.00,
+    "payableDueDate": "2025-04-31",
+    "totalPendingBalance": 1500.00,
+    "pendingDueDate": "2025-07-15",
+    "totalBalance": 2000.00,
+    "totalCodedOut": 250.00,
+    "totalCreditAvailable": 0.00
+  },
+  "chargeDetails": [
+    {
+      "chargeId": "KL3456789",
+      "creationDate": "2025-05-22",
+      "chargeType": "VATC",
+      "chargeAmount": 1500.00,
+      "outstandingAmount": 1500.00,
+      "taxYear": "2025-2026",
+      "dueDate": "2025-07-15"
+    }
+  ],
+  "refundDetails": [],
+  "paymentHistoryDetails": [
+    {
+      "paymentAmount": 500.00 ,
+      "paymentReference": "PAY123456",
+      "paymentMethod": "bank_transfer",
+      "paymentDate": "2025-04-11"
+      "dateProcessed": "2025-04-15",
+      "allocationReference": "AB1234567",
     }
   ]
 }"""

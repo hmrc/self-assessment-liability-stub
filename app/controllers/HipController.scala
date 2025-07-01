@@ -67,7 +67,13 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
           ServiceUnavailable(Json.obj("message" -> "Service unavailable"))
         )
       } else {
-        Future.successful(Ok(Json.toJson(validHipJsonResponse)))
+        if (dateFrom.equals("2025-04-01")) {
+          Future.successful(Ok(Json.toJson(validHipJsonResponse2025)))
+        } else if (dateFrom.equals("2024-04-01")) {
+          Future.successful(Ok(Json.toJson(validHipJsonResponse2024)))
+        } else {
+          Future.successful(Ok(Json.toJson(validHipJsonResponse2023)))
+        }
       }
   }
 }

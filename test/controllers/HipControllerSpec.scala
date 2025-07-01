@@ -26,8 +26,9 @@ import play.api.test.{FakeRequest, Helpers}
 class HipControllerSpec extends AnyWordSpec with Matchers {
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new HipController(Helpers.stubControllerComponents())
-  private val validDateFrom: String = "2023-01-01"
-  private val validHipJsonResponse: String = """{
+  private val validUtr: String = "1234567890"
+  private val validDateFrom: String = "2023-04-01"
+  private val validHipJsonResponse2023: String = """{
   "balanceDetails": {
     "totalOverdueBalance": 500.00,
     "totalPayableBalance": 500.00,
@@ -142,7 +143,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       "dateProcessed": "2024-12-08",
       "allocationReference": "EF2345678",
     },
-        {
+    {
       "paymentAmount": 200.00 ,
       "paymentReference": "PAY888233",
       "paymentMethod": "bank_transfer",
@@ -153,12 +154,134 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
   ]
 }"""
 
+  private val validHipJsonResponse2024: String = """{
+  "balanceDetails": {
+    "totalOverdueBalance": 500.00,
+    "totalPayableBalance": 500.00,
+    "payableDueDate": "2025-04-31",
+    "totalPendingBalance": 1500.00,
+    "pendingDueDate": "2025-07-15",
+    "totalBalance": 2000.00,
+    "totalCodedOut": 250.00,
+    "totalCreditAvailable": 0.00
+  },
+  "chargeDetails": [
+    {
+      "chargeId": "AB1234567",
+      "creationDate": "2025-01-15",
+      "chargeType": "ITSA",
+      "chargeAmount": 1250.00,
+      "outstandingAmount": 500.00,
+      "taxYear": "2024-2025",
+      "dueDate": "2025-04-31",
+      "amendments": [
+        {
+          "amendmentId": "CD7654321",
+          "amendmentType": "payment",
+          "amendmentDate": "2025-04-15",
+          "amendmentAmount": 500.00,
+          "newChargeBalance": 750.00,
+          "paymentReference": "PAY123456",
+          "paymentMethod": "bank_transfer",
+          "paymentDate": "2025-04-10"
+        }
+      ],
+      "codedOutDetail": [
+        {
+          "amount": 250.00,
+          "codedChargeType": "ITSA",
+          "effectiveDate": "2025-04-01",
+          "taxYear": "2024-2025",
+          "effectiveTaxYear": "2025-2026"
+        }
+      ]
+    },
+    {
+      "chargeId": "KL3456789",
+      "creationDate": "2025-05-22",
+      "chargeType": "VATC",
+      "chargeAmount": 1500.00,
+      "outstandingAmount": 1500.00,
+      "taxYear": "2025-2026",
+      "dueDate": "2025-07-15"
+    }
+  ],
+  "refundDetails": [],
+  "paymentHistoryDetails": [
+    {
+      "paymentAmount": 500.00 ,
+      "paymentReference": "PAY123456",
+      "paymentMethod": "bank_transfer",
+      "paymentDate": "2025-04-11"
+      "dateProcessed": "2025-04-15",
+      "allocationReference": "AB1234567",
+    },
+    {
+      "paymentAmount": 2058.33 ,
+      "paymentReference": "PAY112233",
+      "paymentMethod": "bank_transfer",
+      "paymentDate": "2024-12-04"
+      "dateProcessed": "2024-12-08",
+      "allocationReference": "EF2345678",
+    }
+  ]
+}"""
+
+  private val validHipJsonResponse2025: String = """{
+  "balanceDetails": {
+    "totalOverdueBalance": 500.00,
+    "totalPayableBalance": 500.00,
+    "payableDueDate": "2025-04-31",
+    "totalPendingBalance": 1500.00,
+    "pendingDueDate": "2025-07-15",
+    "totalBalance": 2000.00,
+    "totalCodedOut": 250.00,
+    "totalCreditAvailable": 0.00
+  },
+  "chargeDetails": [
+    {
+      "chargeId": "KL3456789",
+      "creationDate": "2025-05-22",
+      "chargeType": "VATC",
+      "chargeAmount": 1500.00,
+      "outstandingAmount": 1500.00,
+      "taxYear": "2025-2026",
+      "dueDate": "2025-07-15"
+    }
+  ],
+  "refundDetails": [],
+  "paymentHistoryDetails": [
+    {
+      "paymentAmount": 500.00 ,
+      "paymentReference": "PAY123456",
+      "paymentMethod": "bank_transfer",
+      "paymentDate": "2025-04-11"
+      "dateProcessed": "2025-04-15",
+      "allocationReference": "AB1234567",
+    }
+  ]
+}"""
+
   "GET /" should {
-    "return 200 with valid response JSON for a valid request" in {
+    "return 200 with details from 2023 for any valid UTR and any other dateFrom" in {
       val result =
-        controller.getSelfAssessmentData("1234567890", validDateFrom)(fakeRequest)
+        controller.getSelfAssessmentData(validUtr, validDateFrom)(fakeRequest)
       status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse)
+      contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse2023)
+    }
+
+    "return 200 with details from 2024 for any valid UTR and dateFrom 2024" in {
+      val result =
+        controller.getSelfAssessmentData(validUtr, "2024-04-01")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse2024)
+    }
+
+    "return 200 with details from 2025 for any valid UTR and dateFrom 2025" in {
+      val result =
+        controller.getSelfAssessmentData(validUtr, "2025-04-01")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse2025)
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
