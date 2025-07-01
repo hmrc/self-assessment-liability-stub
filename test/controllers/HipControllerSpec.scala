@@ -27,7 +27,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new HipController(Helpers.stubControllerComponents())
   private val validUtr: String = "1234567890"
-  private val validDateFrom: String = "2023-04-01"
+  private val validDateFrom: String = "2024-01-01"
   private val validHipJsonResponse2023: String = """{
   "balanceDetails": {
     "totalOverdueBalance": 500.00,
@@ -272,14 +272,14 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 200 with details from 2024 for any valid UTR and dateFrom 2024" in {
       val result =
-        controller.getSelfAssessmentData(validUtr, "2024-04-01")(fakeRequest)
+        controller.getSelfAssessmentData(validUtr, "2024-04-06")(fakeRequest)
       status(result) shouldBe Status.OK
       contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse2024)
     }
 
     "return 200 with details from 2025 for any valid UTR and dateFrom 2025" in {
       val result =
-        controller.getSelfAssessmentData(validUtr, "2025-04-01")(fakeRequest)
+        controller.getSelfAssessmentData(validUtr, "2025-04-06")(fakeRequest)
       status(result) shouldBe Status.OK
       contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse2025)
     }
