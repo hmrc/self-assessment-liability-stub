@@ -49,7 +49,7 @@ object RequestResponseConstants {
     "totalCodedOut": 250.00,
     "totalCreditAvailable": 0.00
   },
-  "charges": [
+  "chargeDetails": [
     {
       "chargeId": "AB1234567",
       "creationDate": "2025-01-15",
@@ -99,6 +99,8 @@ object RequestResponseConstants {
           "amendmentAmount": 200.00,
           "newChargeBalance": 2000.00,
           "paymentReference": "PAY888233",
+          "paymentMethod": "bank_transfer",
+          "paymentDate": "2024-04-24"
         },
         {
           "amendmentId": "CD7654321",
@@ -122,7 +124,7 @@ object RequestResponseConstants {
       "dueDate": "2025-07-15"
     }
   ],
-  "refunds": [
+  "refundDetails": [
     {
       "issueDate": "2024-01-10",
       "refundMethod": "bank_transfer",
@@ -134,7 +136,7 @@ object RequestResponseConstants {
       "refundStatus": "processed",
     }
   ],
-    "paymentHistory": [
+  "paymentHistoryDetails": [
     {
       "paymentAmount": 500.00 ,
       "paymentReference": "PAY123456",
