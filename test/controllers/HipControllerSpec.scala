@@ -54,10 +54,6 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
           "amendmentType": "payment",
           "amendmentDate": "2025-04-15",
           "amendmentAmount": 500.00,
-          "newChargeBalance": 750.00,
-          "paymentReference": "PAY123456",
-          "paymentMethod": "bank_transfer",
-          "paymentDate": "2025-04-10"
         }
       ],
       "codedOutDetail": [
@@ -87,20 +83,12 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
           "amendmentType": "credit",
           "amendmentDate": "2024-04-31",
           "amendmentAmount": 200.00,
-          "newChargeBalance": 2000.00,
-          "paymentReference": "PAY888233",
-          "paymentMethod": "bank_transfer",
-          "paymentDate": "2024-04-24"
         },
         {
           "amendmentId": "CD7654321",
           "amendmentType": "payment",
           "amendmentDate": "2024-12-08",
           "amendmentAmount": 2058.33,
-          "newChargeBalance": 0.00,
-          "paymentReference": "PAY112233",
-          "paymentMethod": "bank_transfer",
-          "paymentDate": "2024-12-03"
         }
       ]
     },
@@ -129,27 +117,18 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
   "paymentHistoryDetails": [
     {
       "paymentAmount": 500.00 ,
-      "paymentReference": "PAY123456",
-      "paymentMethod": "bank_transfer",
       "paymentDate": "2025-04-11"
       "dateProcessed": "2025-04-15",
-      "allocationReference": "AB1234567",
     },
     {
       "paymentAmount": 2058.33 ,
-      "paymentReference": "PAY112233",
-      "paymentMethod": "bank_transfer",
       "paymentDate": "2024-12-04"
       "dateProcessed": "2024-12-08",
-      "allocationReference": "EF2345678",
     },
     {
       "paymentAmount": 200.00 ,
-      "paymentReference": "PAY888233",
-      "paymentMethod": "bank_transfer",
       "paymentDate": "2023-12-04"
       "dateProcessed": "2023-12-08",
-      "allocationReference": "EF2345678",
     }
   ]
 }"""
@@ -180,10 +159,6 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
           "amendmentType": "payment",
           "amendmentDate": "2025-04-15",
           "amendmentAmount": 500.00,
-          "newChargeBalance": 750.00,
-          "paymentReference": "PAY123456",
-          "paymentMethod": "bank_transfer",
-          "paymentDate": "2025-04-10"
         }
       ],
       "codedOutDetail": [
@@ -210,19 +185,13 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
   "paymentHistoryDetails": [
     {
       "paymentAmount": 500.00 ,
-      "paymentReference": "PAY123456",
-      "paymentMethod": "bank_transfer",
       "paymentDate": "2025-04-11"
       "dateProcessed": "2025-04-15",
-      "allocationReference": "AB1234567",
     },
     {
       "paymentAmount": 2058.33 ,
-      "paymentReference": "PAY112233",
-      "paymentMethod": "bank_transfer",
       "paymentDate": "2024-12-04"
       "dateProcessed": "2024-12-08",
-      "allocationReference": "EF2345678",
     }
   ]
 }"""
@@ -253,11 +222,8 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
   "paymentHistoryDetails": [
     {
       "paymentAmount": 500.00 ,
-      "paymentReference": "PAY123456",
-      "paymentMethod": "bank_transfer",
       "paymentDate": "2025-04-11"
       "dateProcessed": "2025-04-15",
-      "allocationReference": "AB1234567",
     }
   ]
 }"""
