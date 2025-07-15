@@ -48,18 +48,26 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       "outstandingAmount": 500.00,
       "taxYear": "2024-2025",
       "dueDate": "2025-04-31",
+      "interestAmountDue": 0.00,
+      "accruingInterest": 0.00,
+      "accruingInterestDateRange": [
+        "interestStartDate": "2025-04-31",
+        "interestEndDate": "2025-04-01"
+      ],
+      "accruingInterestRate": 0.00,
       "amendments": [
         {
-          "amendmentId": "CD7654321",
-          "amendmentType": "payment",
           "amendmentDate": "2025-04-15",
           "amendmentAmount": 500.00,
+          "amendmentReason": "money",
+          "newChargeBalance": 500.00,
+          "paymentMethod": "payment",
+          "paymentDate": "2025-04-15"
         }
       ],
       "codedOutDetail": [
         {
           "amount": 250.00,
-          "codedChargeType": "ITSA",
           "effectiveDate": "2025-04-01",
           "taxYear": "2024-2025",
           "effectiveTaxYear": "2025-2026"
@@ -74,21 +82,16 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       "outstandingAmount": 0.00,
       "taxYear": "2023-2024",
       "dueDate": "2024-04-01",
-      "interestStartDate": "2024-05-01",
-      "interestEndDate": "2024-12-01",
-      "interestRate": 0.05,
       "amendments": [
         {
-          "amendmentId": "GH8765432",
-          "amendmentType": "credit",
           "amendmentDate": "2024-04-31",
           "amendmentAmount": 200.00,
+          "amendmentReason": "money"
         },
         {
-          "amendmentId": "CD7654321",
-          "amendmentType": "payment",
           "amendmentDate": "2024-12-08",
           "amendmentAmount": 2058.33,
+          "amendmentReason": "money"
         }
       ]
     },
@@ -111,24 +114,31 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       "refundReference": "REF123456",
       "interestAddedToRefund": 5.25,
       "refundActualAmount": 355.25,
-      "refundStatus": "processed",
+      "refundStatus": "processed"
     }
   ],
   "paymentHistoryDetails": [
     {
-      "paymentAmount": 500.00 ,
+      "paymentAmount": 500.00,
+      "paymentReference": "payment reference id",
+      "paymentMethod": "payment method",
       "paymentDate": "2025-04-11"
       "dateProcessed": "2025-04-15",
+      "allocationReference": "allocation reference"
     },
     {
-      "paymentAmount": 2058.33 ,
+      "paymentAmount": 2058.33,
+      "paymentReference": "payment reference id",
+      "paymentMethod": "payment method",
       "paymentDate": "2024-12-04"
-      "dateProcessed": "2024-12-08",
+      "dateProcessed": "2024-12-08"
     },
     {
-      "paymentAmount": 200.00 ,
+      "paymentAmount": 200.00,
+      "paymentReference": "payment reference id",
+      "paymentMethod": "payment method",
       "paymentDate": "2023-12-04"
-      "dateProcessed": "2023-12-08",
+      "dateProcessed": "2023-12-08"
     }
   ]
 }"""
@@ -155,16 +165,14 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       "dueDate": "2025-04-31",
       "amendments": [
         {
-          "amendmentId": "CD7654321",
-          "amendmentType": "payment",
           "amendmentDate": "2025-04-15",
           "amendmentAmount": 500.00,
+          "amendmentReason": "money"
         }
       ],
       "codedOutDetail": [
         {
           "amount": 250.00,
-          "codedChargeType": "ITSA",
           "effectiveDate": "2025-04-01",
           "taxYear": "2024-2025",
           "effectiveTaxYear": "2025-2026"
@@ -184,14 +192,19 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
   "refundDetails": [],
   "paymentHistoryDetails": [
     {
-      "paymentAmount": 500.00 ,
+      "paymentAmount": 500.00,
+      "paymentReference": "payment reference id",
+      "paymentMethod": "payment method",
       "paymentDate": "2025-04-11"
       "dateProcessed": "2025-04-15",
+      "allocationReference": "allocation reference"
     },
     {
-      "paymentAmount": 2058.33 ,
+      "paymentAmount": 2058.33,
+      "paymentReference": "payment reference id",
+      "paymentMethod": "payment method",
       "paymentDate": "2024-12-04"
-      "dateProcessed": "2024-12-08",
+      "dateProcessed": "2024-12-08"
     }
   ]
 }"""
@@ -207,25 +220,9 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
     "totalCodedOut": 250.00,
     "totalCreditAvailable": 0.00
   },
-  "chargeDetails": [
-    {
-      "chargeId": "KL3456789",
-      "creationDate": "2025-05-22",
-      "chargeType": "VATC",
-      "chargeAmount": 1500.00,
-      "outstandingAmount": 1500.00,
-      "taxYear": "2025-2026",
-      "dueDate": "2025-07-15"
-    }
-  ],
+  "chargeDetails": [],
   "refundDetails": [],
-  "paymentHistoryDetails": [
-    {
-      "paymentAmount": 500.00 ,
-      "paymentDate": "2025-04-11"
-      "dateProcessed": "2025-04-15",
-    }
-  ]
+  "paymentHistoryDetails": []
 }"""
 
   "GET /" should {
