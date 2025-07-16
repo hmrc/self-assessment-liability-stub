@@ -27,7 +27,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new HipController(Helpers.stubControllerComponents())
   private val validUtr: String = "1234567890"
-  private val validDateFrom: String = "2024-01-01"
+  private val validFromDate: String = "2024-01-01"
   private val validHipJsonResponse2023: String = """{
   "balanceDetails": {
     "totalOverdueBalance": 500.00,
@@ -226,21 +226,21 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 }"""
 
   "GET /" should {
-    "return 200 with details from 2023 for any valid UTR and any other dateFrom" in {
+    "return 200 with details from 2023 for any valid UTR and any other fromDate" in {
       val result =
-        controller.getSelfAssessmentData(validUtr, validDateFrom)(fakeRequest)
+        controller.getSelfAssessmentData(validUtr, validFromDate)(fakeRequest)
       status(result) shouldBe Status.OK
       contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse2023)
     }
 
-    "return 200 with details from 2024 for any valid UTR and dateFrom 2024" in {
+    "return 200 with details from 2024 for any valid UTR and fromDate 2024" in {
       val result =
         controller.getSelfAssessmentData(validUtr, "2024-04-06")(fakeRequest)
       status(result) shouldBe Status.OK
       contentAsJson(result) shouldBe Json.toJson(validHipJsonResponse2024)
     }
 
-    "return 200 with details from 2025 for any valid UTR and dateFrom 2025" in {
+    "return 200 with details from 2025 for any valid UTR and fromDate 2025" in {
       val result =
         controller.getSelfAssessmentData(validUtr, "2025-04-06")(fakeRequest)
       status(result) shouldBe Status.OK
@@ -249,7 +249,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
       val result =
-        controller.getSelfAssessmentData("0111111400", validDateFrom)(
+        controller.getSelfAssessmentData("0111111400", validFromDate)(
           fakeRequest
         )
       status(result) shouldBe Status.BAD_REQUEST
@@ -260,7 +260,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 401 UNAUTHORIZED with correct error message for invalid authentication credentials" in {
       val result =
-        controller.getSelfAssessmentData("0111111401", validDateFrom)(
+        controller.getSelfAssessmentData("0111111401", validFromDate)(
           fakeRequest
         )
       status(result) shouldBe Status.UNAUTHORIZED
@@ -271,7 +271,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 403 FORBIDDEN with correct error message when authority is denied" in {
       val result =
-        controller.getSelfAssessmentData("0111111403", validDateFrom)(
+        controller.getSelfAssessmentData("0111111403", validFromDate)(
           fakeRequest
         )
       status(result) shouldBe Status.FORBIDDEN
@@ -282,7 +282,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 404 NOT_FOUND with correct error message when UTR is not found" in {
       val result =
-        controller.getSelfAssessmentData("0111111404", validDateFrom)(
+        controller.getSelfAssessmentData("0111111404", validFromDate)(
           fakeRequest
         )
       status(result) shouldBe Status.NOT_FOUND
@@ -293,7 +293,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 422 UNPROCESSABLE_ENTITY with correct error message for invalid UTR" in {
       val result =
-        controller.getSelfAssessmentData("0111111422", validDateFrom)(
+        controller.getSelfAssessmentData("0111111422", validFromDate)(
           fakeRequest
         )
       status(result) shouldBe Status.UNPROCESSABLE_ENTITY
@@ -304,7 +304,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message for general internal server errors" in {
       val result =
-        controller.getSelfAssessmentData("0111111500", validDateFrom)(
+        controller.getSelfAssessmentData("0111111500", validFromDate)(
           fakeRequest
         )
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
@@ -313,7 +313,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 502 BAD_GATEWAY with correct error message for service communication errors" in {
       val result =
-        controller.getSelfAssessmentData("0111111502", validDateFrom)(
+        controller.getSelfAssessmentData("0111111502", validFromDate)(
           fakeRequest
         )
       status(result) shouldBe Status.BAD_GATEWAY
@@ -324,7 +324,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 503 SERVICE_UNAVAILABLE with correct error message when service unavailable" in {
       val result =
-        controller.getSelfAssessmentData("0111111503", validDateFrom)(
+        controller.getSelfAssessmentData("0111111503", validFromDate)(
           fakeRequest
         )
       status(result) shouldBe Status.SERVICE_UNAVAILABLE
