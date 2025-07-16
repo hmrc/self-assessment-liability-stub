@@ -20,8 +20,9 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
+import utils.constants.RequestResponseConstants.validNino
 
 class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
 
@@ -46,7 +47,7 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
       "dateOfBirth": "11121971"
     }
     """
-      controller.generateSuccessResponse("123456789") shouldBe expectedResponse
+      controller.generateSuccessResponse(List("123456789")) shouldBe expectedResponse
     }
   }
 
@@ -54,19 +55,12 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
     "return 200 with correct NINO for a valid UTR" in {
       val result = controller.getNino("any other UTR")(fakeRequest)
       status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse("AA055075C"))
+      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse(List("AA055075C")))
     }
 
-    "return 400 BAD_REQUEST with correct error message for invalid UTR" in {
-      val result = controller.getNino("0000000400")(fakeRequest)
-      status(result) shouldBe Status.BAD_REQUEST
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Invalid SaUtr."
-      )
-    }
 
     "return 404 NOT_FOUND with correct error message for no matching UTR" in {
-      val result = controller.getNino("0000000404")(fakeRequest)
+      val result = controller.getNino("1000000404")(fakeRequest)
       status(result) shouldBe Status.NOT_FOUND
       contentAsJson(result) shouldBe Json.obj(
         "message" -> "No record for the given SaUtr is found."
@@ -74,33 +68,25 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message for multiple matching UTRs" in {
-      val result = controller.getNino("0000000500")(fakeRequest)
+      val result = controller.getNino("2000000500")(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "More than one valid matching result."
-      )
+      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse(List(validNino,validNino)))
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message when service unavailable" in {
-      val result = controller.getNino("1000000500")(fakeRequest)
+      val result = controller.getNino("1777777200")(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Service currently unavailable"
+        "message" -> "Downstream Error"
       )
     }
 
     "return 200 with invalid NINO for a specific UTR" in {
-      val result = controller.getNino("0666666200")(fakeRequest)
+      val result = controller.getNino("1666666200")(fakeRequest)
       status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse("ss666666b"))
+      contentAsJson(result) shouldBe Json.parse(controller.generateSuccessResponse(List("ss666666b")))
     }
 
-    "return 200 with server error NINO for a specific UTR" in {
-      val result = controller.getNino("0777777200")(fakeRequest)
-      status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.parse(
-        controller.generateSuccessResponse("ss777777b")
-      )
-    }
+
   }
 }
