@@ -17,18 +17,19 @@
 package controllers
 
 import utils.constants.RequestResponseConstants.*
-
+import utils.date.DateParser.StringParser
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.text.{ParseException, SimpleDateFormat}
+import java.util.Date
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
 class HipController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
-
-  def getSelfAssessmentData(utr: String, fromDate: String): Action[AnyContent] = Action.async {
+  def getSelfAssessmentData(utr: String, dateFrom: String, dateTo: String): Action[AnyContent] = Action.async {
     implicit request =>
       if (utr.equalsIgnoreCase(badUtrHipInvalidCorrelationId)) {
         Future.successful(
@@ -67,9 +68,16 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
           ServiceUnavailable(Json.obj("message" -> "Service unavailable"))
         )
       } else {
-        if (fromDate.equals("2025-04-06")) {
+        try {
+          val dateFromDate: Date = dateFrom.parseDate
+          // TODO: Do something with the dateFromDate.
+        } catch
+          case pe: ParseException => //TODO: Return "else".
+
+        
+        if (dateFrom.equals("2025-04-06")) {
           Future.successful(Ok(Json.toJson(validHipJsonResponse2025)))
-        } else if (fromDate.equals("2024-04-06")) {
+        } else if (dateFrom.equals("2024-04-06")) {
           Future.successful(Ok(Json.toJson(validHipJsonResponse2024)))
         } else {
           Future.successful(Ok(Json.toJson(validHipJsonResponse2023)))
