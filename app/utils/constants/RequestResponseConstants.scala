@@ -16,13 +16,6 @@
 
 package utils.constants
 
-import models.{BalanceDetails, PaymentHistoryDetails}
-import utils.date.DateData
-import utils.date.DateParser.StringParser
-
-import java.text.SimpleDateFormat
-import java.util.Date
-
 object RequestResponseConstants {
   final val badUtrInvalid: String = "0000000400"
   final val badUtrNone: String = "0000000404"
@@ -44,57 +37,6 @@ object RequestResponseConstants {
   final val badNinoServerError: String = "ss777777b"
 
   final val validMtditid: String = "XQIT00000000001"
-
-  private val year2023: Date = "2023-04-06".parseDate
-  private val year2024: Date = "2024-04-06".parseDate
-  private val year2025: Date = "2025-04-06".parseDate
-
-  final val balanceDetails1: BalanceDetails = BalanceDetails(
-    totalOverdueBalance = 500.00,
-    totalPayableBalance = 500.00,
-    payableDueDate = "2025-04-31",
-    totalPendingBalance = 1500.00,
-    pendingDueDate = "2025-07-15",
-    totalBalance = 2000.00,
-    totalCodedOut = 250.00,
-    totalCreditAvailable = 0.00
-  )
-
-  final val dateBalanceDetails: DateData[BalanceDetails] = DateData(year2025, balanceDetails1)
-
-  final val paymentHistoryDetails1: PaymentHistoryDetails = PaymentHistoryDetails(
-    paymentAmount = 500,
-    paymentId = "PAY123456",
-    paymentMethod = "bank_transfer",
-    paymentDate = "2025-04-11",
-    dateProcessed = "2025-04-15",
-    allocationReference = Some("AB1234567")
-  )
-  final val paymentHistoryDetails2: PaymentHistoryDetails = PaymentHistoryDetails(
-    paymentAmount = 2058.33,
-    paymentId = "PAY112233",
-    paymentMethod = "bank_transfer",
-    paymentDate = "2024-12-04",
-    dateProcessed = "2024-12-08",
-    allocationReference = Some("EF2345678")
-  )
-  final val paymentHistoryDetails3: PaymentHistoryDetails = PaymentHistoryDetails(
-    paymentAmount = 200,
-    paymentId = "PAY888233",
-    paymentMethod = "bank_transfer",
-    paymentDate = "2023-12-04",
-    dateProcessed = "2023-12-08",
-    allocationReference = Some("EF2345678")
-  )
-
-  final val datePaymentHistoryDetails1: DateData[PaymentHistoryDetails] = DateData(year2023, paymentHistoryDetails3)
-  final val datePaymentHistoryDetails2: DateData[PaymentHistoryDetails] = DateData(year2024, paymentHistoryDetails2)
-  final val datePaymentHistoryDetails3: DateData[PaymentHistoryDetails] = DateData(year2025, paymentHistoryDetails1)
-
-  def addToSet(dateDataSet: Set[DateData[PaymentHistoryDetails]]): Unit = {
-    val otherSet: Set[DateData[PaymentHistoryDetails]]
-    dateDataSet.foreach(dateData =>)
-  }
 
   final val validHipJsonResponse2023: String = """{
   "balanceDetails": {

@@ -18,7 +18,6 @@ package controllers
 
 import models.{AccruingInterestDateRange, Amendments, BalanceDetails, ChargeDetails, CodedOutDetail, HipResponse, PaymentHistoryDetails, RefundDetails}
 import utils.constants.RequestResponseConstants.*
-import utils.date.DateParser.StringParser
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -73,7 +72,7 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
         )
       } else {
         try {
-          val dateFromDate: Date = dateFrom.parseDate
+//          val dateFromDate: Date = dateFrom.parseDate
           // TODO: Do something with the dateFromDate.
         } catch
           case pe: ParseException => //TODO: Return "else".
