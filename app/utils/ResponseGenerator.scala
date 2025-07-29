@@ -16,7 +16,16 @@
 
 package utils
 
-import models.{AccruingInterestDateRange, Amendments, BalanceDetails, ChargeDetails, CodedOutDetail, HipResponse, PaymentHistoryDetails, RefundDetails}
+import models.{
+  AccruingInterestDateRange,
+  Amendments,
+  BalanceDetails,
+  ChargeDetails,
+  CodedOutDetail,
+  HipResponse,
+  PaymentHistoryDetails,
+  RefundDetails
+}
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, MonthDay}
@@ -67,7 +76,8 @@ object ResponseGenerator {
     val totalCodedOut = charges.flatMap(_.codedOutDetail.getOrElse(Set.empty)).flatMap(_.amount).sum
 
     BalanceDetails(
-      totalOverdueBalance = if (year < getTaxYear(LocalDate.now())) setCurrencyPrecision(totalOutstanding) else 0.00,
+      totalOverdueBalance =
+        if (year < getTaxYear(LocalDate.now())) setCurrencyPrecision(totalOutstanding) else 0.00,
       totalPayableBalance = setCurrencyPrecision(totalOutstanding * random.nextDouble()),
       payableDueDate = generateDateInYear(year, isEndOfYear = true),
       totalPendingBalance = setCurrencyPrecision(totalOutstanding + random.nextInt(2000)),
