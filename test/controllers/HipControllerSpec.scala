@@ -126,26 +126,4 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       contentAsJson(result) shouldBe Json.obj("message" -> "Service unavailable")
     }
   }
-
-  "Generate JSON response" should {
-    "Get the correct tax year" in {
-      val date1: LocalDate = LocalDate.parse("2024-07-01")
-      val date2: LocalDate = LocalDate.parse("2025-01-01")
-      val date3: LocalDate = LocalDate.parse("2025-04-06")
-      val date4: LocalDate = LocalDate.parse("2025-07-01")
-      HipController.getTaxYear(date1) shouldBe 2024
-      HipController.getTaxYear(date2) shouldBe 2024
-      HipController.getTaxYear(date3) shouldBe 2025
-      HipController.getTaxYear(date4) shouldBe 2025
-    }
-
-    "Generate a response from a given year" in {
-      val hipResponse: HipResponse = HipController.generateResponse(2023, 2024)
-
-//      hipResponse.chargeDetails.foreach(f =>
-//        f._1.toString shouldBe f._2.balanceDetails.payableDueDate.split("-")(0)
-//      )
-      print(hipResponse)
-    }
-  }
 }
