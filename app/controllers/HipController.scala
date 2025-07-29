@@ -16,26 +16,15 @@
 
 package controllers
 
-import models.{
-  AccruingInterestDateRange,
-  Amendments,
-  BalanceDetails,
-  ChargeDetails,
-  CodedOutDetail,
-  HipResponse,
-  PaymentHistoryDetails,
-  RefundDetails
-}
+import models.{AccruingInterestDateRange, Amendments, BalanceDetails, ChargeDetails, CodedOutDetail, HipResponse, PaymentHistoryDetails, RefundDetails}
 import utils.constants.RequestResponseConstants.*
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.text.{ParseException, SimpleDateFormat}
 import java.time.LocalDate
 import java.time.MonthDay
 import java.time.format.DateTimeFormatter
-import java.util.Date
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 import scala.util.Random
@@ -81,18 +70,11 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
           ServiceUnavailable(Json.obj("message" -> "Service unavailable"))
         )
       } else {
-        try {
-//          val dateFromDate: Date = dateFrom.parseDate
-          // TODO: Do something with the dateFromDate.
-        } catch
-          case pe: ParseException => // TODO: Return "else".
-        if (dateFrom.equals("2025-04-06")) {
-          Future.successful(Ok(Json.toJson(validHipJsonResponse2025)))
-        } else if (dateFrom.equals("2024-04-06")) {
-          Future.successful(Ok(Json.toJson(validHipJsonResponse2024)))
-        } else {
-          Future.successful(Ok(Json.toJson(validHipJsonResponse2023)))
-        }
+        val dateFromYear: Int = LocalDate.parse(dateFrom).getYear
+        val dateToYear: Int = LocalDate.parse(dateTo).getYear
+        val hipResponse: HipResponse = HipController.generateResponse(dateFromYear, dateToYear)
+        val json: JsValue = Json.toJson(hipResponse)
+        Future.successful(Ok(json))
       }
     }
 }
@@ -115,24 +97,25 @@ object HipController {
     }
   }
 
-  def generateDocumentsFromYear(fromDate: LocalDate): Map[Int, HipResponse] = {
-    val startYear = getTaxYear(fromDate)
-    val currentYear = getTaxYear(LocalDate.now())
+  def generateResponse(fromYear: Int, toYear: Int): HipResponse = {
+    var allCharges: Set[ChargeDetails] = Set[ChargeDetails]()
+    var allRefunds: Set[RefundDetails] = Set[RefundDetails]()
+    var allHistory: Set[PaymentHistoryDetails] = Set[PaymentHistoryDetails]()
 
-    (startYear to currentYear).map { year =>
-      year -> generateDocumentForYear(year)
-    }.toMap
-  }
+    (fromYear to toYear).foreach(year => {
+      val numCharges = random.nextInt(2) + 1
 
-  private def generateDocumentForYear(year: Int): HipResponse = {
-    val numCharges = random.nextInt(2) + 1
-    val charges = (1 to numCharges).map(_ => generateCharge(year)).toSet
+      val charges = (1 to numCharges).map(_ => generateCharge(year)).toSet
+      val refunds = generateRefunds(year)
+      val paymentHistory = generatePaymentHistory(year, charges)
 
-    val balanceDetails = generateBalanceDetails(year, charges)
-    val refunds = generateRefunds(year)
-    val paymentHistory = generatePaymentHistory(year, charges)
+      allCharges ++= charges
+      allRefunds ++= refunds
+      allHistory ++= paymentHistory
+    })
 
-    HipResponse(balanceDetails, Some(charges), Some(refunds), Some(paymentHistory))
+    val balanceDetails = generateBalanceDetails(fromYear, allCharges)
+    HipResponse(balanceDetails, Some(allCharges), Some(allRefunds), Some(allHistory))
   }
 
   private def generateBalanceDetails(year: Int, charges: Set[ChargeDetails]): BalanceDetails = {
