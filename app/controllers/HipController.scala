@@ -124,14 +124,14 @@ object HipController {
     val totalCodedOut = charges.flatMap(_.codedOutDetail.getOrElse(Set.empty)).flatMap(_.amount).sum
 
     BalanceDetails(
-      totalOverdueBalance = if (year < getTaxYear(LocalDate.now())) totalOutstanding else 0.00,
-      totalPayableBalance = totalOutstanding * random.nextDouble(),
+      totalOverdueBalance = if (year < getTaxYear(LocalDate.now())) setCurrencyPrecision(totalOutstanding) else 0.00,
+      totalPayableBalance = setCurrencyPrecision(totalOutstanding * random.nextDouble()),
       payableDueDate = generateDateInYear(year, isEndOfYear = true),
-      totalPendingBalance = totalOutstanding + random.nextInt(2000),
+      totalPendingBalance = setCurrencyPrecision(totalOutstanding + random.nextInt(2000)),
       pendingDueDate = generateFutureDate(year),
-      totalBalance = totalChargeAmount,
+      totalBalance = setCurrencyPrecision(totalChargeAmount),
       totalCodedOut = totalCodedOut,
-      totalCreditAvailable = random.nextInt(1000)
+      totalCreditAvailable = setCurrencyPrecision(random.nextInt(1000))
     )
   }
 
@@ -150,17 +150,17 @@ object HipController {
     val interestStartDate = generateDateInYear(year + 1)
     val interestEndDate = generateDateInYear(year + 1, isEndOfYear = true)
     val isLate = random.nextBoolean()
-    val interestAmount = Some(random.nextInt(200).toDouble)
+    val interestAmount = random.nextInt(200).toDouble
     ChargeDetails(
       chargeId = generateChargeId(),
       creationDate = generateDateInYear(year),
       chargeType = chargeType,
-      chargeAmount = chargeAmount,
-      outstandingAmount = outstandingAmount,
+      chargeAmount = setCurrencyPrecision(chargeAmount),
+      outstandingAmount = setCurrencyPrecision(outstandingAmount),
       taxYear = s"$year-${year + 1}",
       dueDate = generateDateInYear(year + 1),
-      interestAmountDue = if isLate then interestAmount else None,
-      accruingInterest = if isLate then interestAmount else None,
+      interestAmountDue = if isLate then Some(setCurrencyPrecision(interestAmount)) else None,
+      accruingInterest = if isLate then Some(setCurrencyPrecision(interestAmount)) else None,
       accruingInterestDateRange =
         if isLate then Some(AccruingInterestDateRange(interestStartDate, interestEndDate))
         else None,
@@ -176,9 +176,9 @@ object HipController {
 
     Amendments(
       amendmentDate = generateDateInYear(year),
-      amendmentAmount = amendmentAmount,
+      amendmentAmount = setCurrencyPrecision(amendmentAmount),
       amendmentReason = amendmentReason,
-      newChargeBalance = Some(maxAmount - amendmentAmount),
+      newChargeBalance = Some(setCurrencyPrecision(maxAmount - amendmentAmount)),
       paymentMethod =
         if (amendmentReason == "payment")
           Some(paymentMethods(random.nextInt(paymentMethods.length)))
@@ -189,7 +189,7 @@ object HipController {
 
   private def generateCodedOutDetail(year: Int): CodedOutDetail = {
     CodedOutDetail(
-      amount = Some(random.nextInt(500) + 100),
+      amount = Some(setCurrencyPrecision(random.nextInt(500) + 100)),
       effectiveDate = Some(generateDateInYear(year)),
       taxYear = Some(s"$year-${year + 1}"),
       effectiveTaxYear = Some(s"${year + 1}-${year + 2}")
@@ -208,10 +208,10 @@ object HipController {
             issueDate = generateDateInYear(year),
             refundMethod = Some(paymentMethods(random.nextInt(paymentMethods.length))),
             refundRequestDate = Some(generateDateInYear(year - 1, isEndOfYear = true)),
-            refundRequestAmount = requestAmount,
+            refundRequestAmount = setCurrencyPrecision(requestAmount),
             refundReference = Some(generatePaymentReference()),
-            interestAddedToRefund = Some(interest),
-            refundActualAmount = requestAmount + interest,
+            interestAddedToRefund = Some(setCurrencyPrecision(interest)),
+            refundActualAmount = setCurrencyPrecision(requestAmount + interest),
             refundStatus = Some(refundStatuses(random.nextInt(refundStatuses.length)))
           )
         })
@@ -229,7 +229,7 @@ object HipController {
         .filter(_.amendmentReason == "payment")
         .map { amendment =>
           PaymentHistoryDetails(
-            paymentAmount = amendment.amendmentAmount,
+            paymentAmount = setCurrencyPrecision(amendment.amendmentAmount),
             paymentId = generatePaymentReference(),
             paymentMethod = amendment.paymentMethod.getOrElse("bank_transfer"),
             paymentDate = amendment.paymentDate.getOrElse(generateDateInYear(year)),
@@ -263,5 +263,9 @@ object HipController {
   private def generateFutureDate(baseYear: Int): String = {
     val futureYear = baseYear + random.nextInt(2) + 1
     generateDateInYear(futureYear)
+  }
+
+  private def setCurrencyPrecision(d: Double): Double = {
+    (math rint d * 100) / 100
   }
 }
