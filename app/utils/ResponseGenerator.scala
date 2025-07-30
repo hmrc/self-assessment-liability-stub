@@ -38,17 +38,6 @@ object ResponseGenerator {
   private val paymentMethods = List("bank transfer", "card", "direct debit", "cheque")
   private val refundStatuses = List("processed", "pending", "rejected")
 
-  def getTaxYear(fromDate: LocalDate): Int = {
-    val taxYearStart: MonthDay = MonthDay.parse("--04-06")
-    val fromDateMonthDay: MonthDay = MonthDay.from(fromDate)
-
-    if (fromDateMonthDay.isBefore(taxYearStart)) {
-      fromDate.getYear - 1
-    } else {
-      fromDate.getYear
-    }
-  }
-
   def generateResponse(fromYear: Int, toYear: Int): HipResponse = {
     var allCharges: Set[ChargeDetails] = Set[ChargeDetails]()
     var allRefunds: Set[RefundDetails] = Set[RefundDetails]()
@@ -67,39 +56,38 @@ object ResponseGenerator {
     })
 
     val balanceDetails = generateBalanceDetails(fromYear, allCharges)
-    HipResponse(balanceDetails, Some(allCharges), Some(allRefunds), Some(allHistory))
-  }
 
-  private def generateBalanceDetails(year: Int, charges: Set[ChargeDetails]): BalanceDetails = {
-    val totalOutstanding = charges.map(_.outstandingAmount).sum
-    val totalChargeAmount = charges.map(_.chargeAmount).sum
-    val totalCodedOut = charges.flatMap(_.codedOutDetail.getOrElse(Set.empty)).flatMap(_.amount).sum
-
-    BalanceDetails(
-      totalOverdueBalance =
-        if (year < getTaxYear(LocalDate.now())) setCurrencyPrecision(totalOutstanding) else 0.00,
-      totalPayableBalance = setCurrencyPrecision(totalOutstanding * random.nextDouble()),
-      payableDueDate = generateDateInYear(year, isEndOfYear = true),
-      totalPendingBalance = setCurrencyPrecision(totalOutstanding + random.nextInt(2000)),
-      pendingDueDate = generateFutureDate(year),
-      totalBalance = setCurrencyPrecision(totalChargeAmount),
-      totalCodedOut = totalCodedOut,
-      totalCreditAvailable = setCurrencyPrecision(random.nextInt(1000))
+    HipResponse(
+      balanceDetails,
+      if (allCharges.isEmpty) None else Some(allCharges),
+      if (allRefunds.isEmpty) None else Some(allRefunds),
+      if (allHistory.isEmpty) None else Some(allHistory)
     )
   }
 
-  private def generateCharge(year: Int): ChargeDetails = {
+  def getTaxYear(fromDate: LocalDate): Int = {
+    val taxYearStart: MonthDay = MonthDay.parse("--04-06")
+    val fromDateMonthDay: MonthDay = MonthDay.from(fromDate)
+
+    if (fromDateMonthDay.isBefore(taxYearStart)) {
+      fromDate.getYear - 1
+    } else {
+      fromDate.getYear
+    }
+  }
+
+  def generateCharge(year: Int): ChargeDetails = {
     val chargeAmount = random.nextInt(5000) + 500
     val outstandingAmount = chargeAmount * random.nextDouble()
     val chargeType = chargeTypes(random.nextInt(chargeTypes.length))
 
     val amendments = if (random.nextBoolean()) {
-      (1 to random.nextInt(3) + 1).map(_ => generateAmendment(year, chargeAmount)).toSet
-    } else Set.empty
+      Some((1 to random.nextInt(3) + 1).map(_ => generateAmendment(year, chargeAmount)).toSet)
+    } else None
 
     val codedOut = if (random.nextBoolean() && year < getTaxYear(LocalDate.now())) {
-      Set(generateCodedOutDetail(year))
-    } else Set.empty
+      Some(Set(generateCodedOutDetail(year)))
+    } else None
     val interestStartDate = generateDateInYear(year + 1)
     val interestEndDate = generateDateInYear(year + 1, isEndOfYear = true)
     val isLate = random.nextBoolean()
@@ -118,12 +106,12 @@ object ResponseGenerator {
         if isLate then Some(AccruingInterestDateRange(interestStartDate, interestEndDate))
         else None,
       accruingInterestRate = if isLate then Some(0.05) else None,
-      amendments = Some(amendments),
-      codedOutDetail = Some(codedOut)
+      amendments = amendments,
+      codedOutDetail = codedOut
     )
   }
 
-  private def generateAmendment(year: Int, maxAmount: Double): Amendments = {
+  def generateAmendment(year: Int, maxAmount: Double): Amendments = {
     val amendmentReason = amendmentTypes(random.nextInt(amendmentTypes.length))
     val amendmentAmount = maxAmount * random.nextDouble()
 
@@ -140,7 +128,7 @@ object ResponseGenerator {
     )
   }
 
-  private def generateCodedOutDetail(year: Int): CodedOutDetail = {
+  def generateCodedOutDetail(year: Int): CodedOutDetail = {
     CodedOutDetail(
       amount = Some(setCurrencyPrecision(random.nextInt(500) + 100)),
       effectiveDate = Some(generateDateInYear(year)),
@@ -149,21 +137,21 @@ object ResponseGenerator {
     )
   }
 
-  private def generateRefunds(year: Int): Set[RefundDetails] = {
+  def generateRefunds(year: Int): Set[RefundDetails] = {
     if (random.nextBoolean() && year < getTaxYear(LocalDate.now())) {
       val numRefunds = random.nextInt(2) + 1
       (1 to numRefunds)
         .map(_ => {
-          val requestAmount = random.nextInt(1000) + 100
-          val interest = requestAmount * 0.015
+          val requestAmount = setCurrencyPrecision(random.nextInt(1000) + 100)
+          val interest = setCurrencyPrecision(requestAmount * 0.015)
 
           RefundDetails(
             issueDate = generateDateInYear(year),
             refundMethod = Some(paymentMethods(random.nextInt(paymentMethods.length))),
             refundRequestDate = Some(generateDateInYear(year - 1, isEndOfYear = true)),
-            refundRequestAmount = setCurrencyPrecision(requestAmount),
+            refundRequestAmount = requestAmount,
             refundReference = Some(generatePaymentReference()),
-            interestAddedToRefund = Some(setCurrencyPrecision(interest)),
+            interestAddedToRefund = Some(interest),
             refundActualAmount = setCurrencyPrecision(requestAmount + interest),
             refundStatus = Some(refundStatuses(random.nextInt(refundStatuses.length)))
           )
@@ -172,7 +160,7 @@ object ResponseGenerator {
     } else Set.empty
   }
 
-  private def generatePaymentHistory(
+  def generatePaymentHistory(
       year: Int,
       charges: Set[ChargeDetails]
   ): Set[PaymentHistoryDetails] = {
@@ -191,6 +179,24 @@ object ResponseGenerator {
           )
         }
     }
+  }
+
+  def generateBalanceDetails(year: Int, charges: Set[ChargeDetails]): BalanceDetails = {
+    val totalOutstanding = charges.map(_.outstandingAmount).sum
+    val totalChargeAmount = charges.map(_.chargeAmount).sum
+    val totalCodedOut = charges.flatMap(_.codedOutDetail.getOrElse(Set.empty)).flatMap(_.amount).sum
+
+    BalanceDetails(
+      totalOverdueBalance =
+        if (year < getTaxYear(LocalDate.now())) setCurrencyPrecision(totalOutstanding) else 0.00,
+      totalPayableBalance = setCurrencyPrecision(totalOutstanding * random.nextDouble()),
+      payableDueDate = generateDateInYear(year, isEndOfYear = true),
+      totalPendingBalance = setCurrencyPrecision(totalOutstanding + random.nextInt(2000)),
+      pendingDueDate = generateFutureDate(year),
+      totalBalance = setCurrencyPrecision(totalChargeAmount),
+      totalCodedOut = totalCodedOut,
+      totalCreditAvailable = setCurrencyPrecision(random.nextInt(1000))
+    )
   }
 
   private def generatePaymentReference(): String = random.nextInt(1231232131).toString
@@ -218,7 +224,7 @@ object ResponseGenerator {
     generateDateInYear(futureYear)
   }
 
-  private def setCurrencyPrecision(d: Double): Double = {
+  def setCurrencyPrecision(d: Double): Double = {
     (math rint d * 100) / 100
   }
 }
