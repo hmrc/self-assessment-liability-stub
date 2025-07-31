@@ -181,7 +181,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
     }
 
     "Generate empty set refunds" in {
-      when(random.nextBoolean()).thenReturn(true)
+      when(random.nextBoolean()).thenReturn(false)
 
       val refundDetails: Set[RefundDetails] = ResponseGenerator.generateRefunds(2024)
 
