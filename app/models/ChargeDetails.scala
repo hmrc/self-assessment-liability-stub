@@ -18,20 +18,21 @@ package models
 
 import play.api.libs.json.{Json, OFormat}
 
+import java.time.LocalDate
+
 case class ChargeDetails(
     chargeId: String,
-    creationDate: String,
+    creationDate: LocalDate,
     chargeType: String,
     chargeAmount: Double,
     outstandingAmount: Double,
     taxYear: String,
-    dueDate: String,
+    dueDate: LocalDate,
     interestAmountDue: Option[Double],
     accruingInterest: Option[Double],
     accruingInterestDateRange: Option[AccruingInterestDateRange],
     accruingInterestRate: Option[Double],
-    amendments: Option[Set[Amendments]],
-    codedOutDetail: Option[Set[CodedOutDetail]]
+    amendments: Option[Set[Amendments]]
 )
 
 object ChargeDetails {

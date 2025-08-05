@@ -16,52 +16,43 @@
 
 package utils
 
-import models.{
-  AccruingInterestDateRange,
-  Amendments,
-  BalanceDetails,
-  ChargeDetails,
-  CodedOutDetail,
-  HipResponse,
-  PaymentHistoryDetails,
-  RefundDetails
-}
+import models.{AccruingInterestDateRange, Amendments, BalanceDetails, ChargeDetails, CodedOutDetail, HipResponse, PaymentHistoryDetails, RefundDetails}
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, MonthDay}
+import scala.collection.mutable
 import scala.util.Random
 
 object ResponseGenerator {
   private val random = new Random()
   private val chargeTypes = List("ITSA", "Penalty", "PAYE")
-  private val amendmentTypes = List("payment", "credit", "adjustment")
+  private val amendmentTypes = List("payment", "credit")
   private val paymentMethods = List("bank transfer", "card", "direct debit", "cheque")
   private val refundStatuses = List("processed", "pending", "rejected")
 
-  def generateResponse(fromYear: Int, toYear: Int): HipResponse = {
-    var allCharges: Set[ChargeDetails] = Set[ChargeDetails]()
-    var allRefunds: Set[RefundDetails] = Set[RefundDetails]()
-    var allHistory: Set[PaymentHistoryDetails] = Set[PaymentHistoryDetails]()
-
-    (fromYear to toYear).foreach(year => {
-      val numCharges = random.nextInt(2) + 1
-
-      val charges = (1 to numCharges).map(_ => generateCharge(year)).toSet
+  def generateResponse(fromDate: LocalDate, toDate: LocalDate): HipResponse = {
+    val records = (fromYear to toYear).map { year =>
+      val numChargesPerYear = random.nextInt(2) + 1
+      val charges = (1 to numChargesPerYear).map(_ => generateCharge(year)).toSet
       val refunds = generateRefunds(year)
       val paymentHistory = generatePaymentHistory(year, charges)
 
-      allCharges ++= charges
-      allRefunds ++= refunds
-      allHistory ++= paymentHistory
-    })
+      (charges, refunds, paymentHistory)
+    }
+
+    val allCharges = records.flatMap(_._1).toSet
+    val allRefunds = records.flatMap(_._2).toSet
+    val allPaymentHistory = records.flatMap(_._3).toSet
 
     val balanceDetails = generateBalanceDetails(fromYear, allCharges)
 
+    val codedOut = if (random.nextBoolean()) Some(Set(generateCodedOutDetail(year) else None
+
     HipResponse(
       balanceDetails,
-      if (allCharges.isEmpty) None else Some(allCharges),
-      if (allRefunds.isEmpty) None else Some(allRefunds),
-      if (allHistory.isEmpty) None else Some(allHistory)
+      Some(allCharges),
+      Some(allRefunds),
+      Some(allPaymentHistory)
     )
   }
 
@@ -77,49 +68,75 @@ object ResponseGenerator {
   }
 
   def generateCharge(year: Int): ChargeDetails = {
-    val chargeAmount = random.nextInt(5000) + 500
-    val outstandingAmount = chargeAmount * random.nextDouble()
-    val chargeType = chargeTypes(random.nextInt(chargeTypes.length))
+    val totalChargeAmount = random.between(500, 50000)
+    val chargeType = random.shuffle(chargeTypes).head
 
-    val amendments = if (random.nextBoolean()) {
-      Some((1 to random.nextInt(3) + 1).map(_ => generateAmendment(year, chargeAmount)).toSet)
+    val amendments = if (year < LocalDate.now().getYear) {
+      Some(generateAmendments(year, totalChargeAmount))
     } else None
 
-    val codedOut = if (random.nextBoolean() && year < getTaxYear(LocalDate.now())) {
-      Some(Set(generateCodedOutDetail(year)))
-    } else None
+    val outstandingAmount = totalChargeAmount - amendments.getOrElse(Set.empty).map(_.amendmentAmount).sum
+    val isLate = random.nextBoolean()
     val interestStartDate = generateDateInYear(year + 1)
     val interestEndDate = generateDateInYear(year + 1, isEndOfYear = true)
-    val isLate = random.nextBoolean()
+
     val interestAmount = random.nextInt(200).toDouble
     ChargeDetails(
       chargeId = generateChargeId(),
-      creationDate = generateDateInYear(year),
+      creationDate = LocalDate().withYear(year),
       chargeType = chargeType,
-      chargeAmount = setCurrencyPrecision(chargeAmount),
-      outstandingAmount = setCurrencyPrecision(outstandingAmount),
+      chargeAmount = totalChargeAmount,
+      outstandingAmount = outstandingAmount,
       taxYear = s"$year-${year + 1}",
-      dueDate = generateDateInYear(year + 1),
-      interestAmountDue = if isLate then Some(setCurrencyPrecision(interestAmount)) else None,
-      accruingInterest = if isLate then Some(setCurrencyPrecision(interestAmount)) else None,
+      dueDate = LocalDate().withYear(year).plusMonths(3),
+      interestAmountDue = if isLate then Some(interestAmount) else None,
+      accruingInterest = if isLate then Some(interestAmount) else None,
       accruingInterestDateRange =
         if isLate then Some(AccruingInterestDateRange(interestStartDate, interestEndDate))
         else None,
       accruingInterestRate = if isLate then Some(0.05) else None,
-      amendments = amendments,
-      codedOutDetail = codedOut
+      amendments = amendments
     )
   }
 
-  def generateAmendment(year: Int, maxAmount: Double): Amendments = {
-    val amendmentReason = amendmentTypes(random.nextInt(amendmentTypes.length))
-    val amendmentAmount = maxAmount * random.nextDouble()
+  def generateAmendments(year: Int, totalChargeAmount: Double): Set[Amendments] = {
+    val numberOfAmendments = random.nextInt(3) + 1
+    var remainingAmount = totalChargeAmount
+    val amendments = mutable.Set.empty[Amendments]
+
+    for (i <- 1 to numberOfAmendments) {
+      if (remainingAmount > 0) {
+        val maxAmendmentAmount = if (i == numberOfAmendments) {
+          remainingAmount
+        } else {
+          math.min(remainingAmount * 0.8, remainingAmount - (numberOfAmendments - i) * (totalChargeAmount * 0.1))
+        }
+
+        val amendment = generateAmendment(year, maxAmendmentAmount, remainingAmount)
+        amendments += amendment
+        remainingAmount -= amendment.amendmentAmount
+      }
+    }
+
+    amendments.toSet
+  }
+
+  def generateAmendment(year: Int, maxAmount: Double, currentBalance: Double): Amendments = {
+    val amendmentReason = random.shuffle(amendmentTypes).head
+
+    // Ensure amendment amount doesn't exceed the available balance and is reasonable
+    val minAmount = math.max(1.0, maxAmount * 0.1)
+    val amendmentAmount = if (maxAmount <= minAmount) {
+      maxAmount
+    } else {
+      random.between(minAmount, maxAmount)
+    }
 
     Amendments(
       amendmentDate = generateDateInYear(year),
-      amendmentAmount = setCurrencyPrecision(amendmentAmount),
+      amendmentAmount = amendmentAmount,
       amendmentReason = amendmentReason,
-      newChargeBalance = Some(setCurrencyPrecision(maxAmount - amendmentAmount)),
+      newChargeBalance = Some(currentBalance - amendmentAmount),
       paymentMethod =
         if (amendmentReason == "payment")
           Some(paymentMethods(random.nextInt(paymentMethods.length)))
@@ -128,12 +145,11 @@ object ResponseGenerator {
     )
   }
 
-  def generateCodedOutDetail(year: Int): CodedOutDetail = {
+  def generateCodedOutDetail(year: Int, maxAmount: Double): CodedOutDetail = {
     CodedOutDetail(
-      amount = Some(setCurrencyPrecision(random.nextInt(500) + 100)),
-      effectiveDate = Some(generateDateInYear(year)),
-      taxYear = Some(s"$year-${year + 1}"),
-      effectiveTaxYear = Some(s"${year + 1}-${year + 2}")
+      totalAmount = random.between(500, maxAmount),
+      effectiveStartDate = ???,
+      effectiveEndDate = ???
     )
   }
 
@@ -142,8 +158,8 @@ object ResponseGenerator {
       val numRefunds = random.nextInt(2) + 1
       (1 to numRefunds)
         .map(_ => {
-          val requestAmount = setCurrencyPrecision(random.nextInt(1000) + 100)
-          val interest = setCurrencyPrecision(requestAmount * 0.015)
+          val requestAmount = random.nextInt(1000) + 100
+          val interest = requestAmount * 0.015
 
           RefundDetails(
             issueDate = generateDateInYear(year),
@@ -152,7 +168,7 @@ object ResponseGenerator {
             refundRequestAmount = requestAmount,
             refundReference = Some(generatePaymentReference()),
             interestAddedToRefund = Some(interest),
-            refundActualAmount = setCurrencyPrecision(requestAmount + interest),
+            refundActualAmount = requestAmount + interest,
             refundStatus = Some(refundStatuses(random.nextInt(refundStatuses.length)))
           )
         })
@@ -170,7 +186,7 @@ object ResponseGenerator {
         .filter(_.amendmentReason == "payment")
         .map { amendment =>
           PaymentHistoryDetails(
-            paymentAmount = setCurrencyPrecision(amendment.amendmentAmount),
+            paymentAmount = amendment.amendmentAmount,
             paymentId = generatePaymentReference(),
             paymentMethod = amendment.paymentMethod.getOrElse("bank_transfer"),
             paymentDate = amendment.paymentDate.getOrElse(generateDateInYear(year)),
@@ -184,18 +200,16 @@ object ResponseGenerator {
   def generateBalanceDetails(year: Int, charges: Set[ChargeDetails]): BalanceDetails = {
     val totalOutstanding = charges.map(_.outstandingAmount).sum
     val totalChargeAmount = charges.map(_.chargeAmount).sum
-    val totalCodedOut = charges.flatMap(_.codedOutDetail.getOrElse(Set.empty)).flatMap(_.amount).sum
-
+    val codedOutDetail = ???  //implement logic
     BalanceDetails(
       totalOverdueBalance =
-        if (year < getTaxYear(LocalDate.now())) setCurrencyPrecision(totalOutstanding) else 0.00,
-      totalPayableBalance = setCurrencyPrecision(totalOutstanding * random.nextDouble()),
+        if (year < getTaxYear(LocalDate.now())) totalOutstanding else 0.00,
+      totalPayableBalance = totalOutstanding * random.nextDouble(),
       payableDueDate = generateDateInYear(year, isEndOfYear = true),
-      totalPendingBalance = setCurrencyPrecision(totalOutstanding + random.nextInt(2000)),
+      totalPendingBalance = totalOutstanding + random.nextInt(2000),
       pendingDueDate = generateFutureDate(year),
-      totalBalance = setCurrencyPrecision(totalChargeAmount),
-      totalCodedOut = totalCodedOut,
-      totalCreditAvailable = setCurrencyPrecision(random.nextInt(1000))
+      totalBalance = totalChargeAmount,
+      totalCreditAvailable = random.nextInt(1000)
     )
   }
 
@@ -223,8 +237,5 @@ object ResponseGenerator {
     val futureYear = baseYear + random.nextInt(2) + 1
     generateDateInYear(futureYear)
   }
-
-  def setCurrencyPrecision(d: Double): Double = {
-    (math rint d * 100) / 100
-  }
+  
 }

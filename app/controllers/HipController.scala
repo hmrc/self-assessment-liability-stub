@@ -29,7 +29,7 @@ import scala.concurrent.Future
 
 @Singleton()
 class HipController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
-  def getSelfAssessmentData(utr: String, dateFrom: String, dateTo: String): Action[AnyContent] =
+  def getSelfAssessmentData(utr: String, dateFrom: LocalDate, dateTo: LocalDate): Action[AnyContent] =
     Action.async { implicit request =>
       if (utr.equalsIgnoreCase(badUtrHipInvalidCorrelationId)) {
         Future.successful(
@@ -68,9 +68,7 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
           ServiceUnavailable(Json.obj("message" -> "Service unavailable"))
         )
       } else {
-        val dateFromYear: Int = LocalDate.parse(dateFrom).getYear
-        val dateToYear: Int = LocalDate.parse(dateTo).getYear
-        val hipResponse: HipResponse = ResponseGenerator.generateResponse(dateFromYear, dateToYear)
+        val hipResponse: HipResponse = ResponseGenerator.generateResponse(dateFrom.getYear, dateTo.getYear)
         val json: JsValue = Json.toJson(hipResponse)
         Future.successful(Ok(json))
       }

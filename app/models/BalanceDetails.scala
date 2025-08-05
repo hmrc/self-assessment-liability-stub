@@ -25,8 +25,8 @@ case class BalanceDetails(
     totalPendingBalance: Double,
     pendingDueDate: String,
     totalBalance: Double,
-    totalCodedOut: Double,
-    totalCreditAvailable: Double
+    totalCreditAvailable: Double,
+    codedOutDetail: Option[Set[CodedOutDetail]] = None
 )
 
 object BalanceDetails {

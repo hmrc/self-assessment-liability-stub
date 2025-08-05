@@ -18,11 +18,12 @@ package models
 
 import play.api.libs.json.{Json, OFormat}
 
+import java.time.LocalDate
+
 case class CodedOutDetail(
-    amount: Option[Double],
-    effectiveDate: Option[String],
-    taxYear: Option[String],
-    effectiveTaxYear: Option[String]
+                           totalAmount: Double,
+                           effectiveStartDate: LocalDate,
+                           effectiveEndDate: LocalDate,
 )
 
 object CodedOutDetail {
