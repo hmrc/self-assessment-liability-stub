@@ -26,7 +26,9 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class CitizenDetailsController @Inject() (cc: ControllerComponents) extends BackendController(cc) with Logging{
+class CitizenDetailsController @Inject() (cc: ControllerComponents)
+    extends BackendController(cc)
+    with Logging {
 
   def generateSuccessResponse(ninos: List[String]): String = {
     s"""
@@ -47,15 +49,17 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents) extends Back
   }
 
   def getNino(utr: String): Action[AnyContent] = Action.async { implicit request =>
-     if (utr.equalsIgnoreCase(noNinoFoundForUtr)) {
+    if (utr.equalsIgnoreCase(noNinoFoundForUtr)) {
       Future.successful(
         NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))
       )
     } else if (utr.equalsIgnoreCase(badUtrMultiple)) {
-       val validNinos= List(validNino,validNino)
-       logger.info(s"${validNinos.length} valid ninos associated with $badUtrMultiple returned from CID")
+      val validNinos = List(validNino, validNino)
+      logger.info(
+        s"${validNinos.length} valid ninos associated with $badUtrMultiple returned from CID"
+      )
       Future.successful(
-        InternalServerError(Json.parse(generateSuccessResponse(List(validNino,validNino))))
+        InternalServerError(Json.parse(generateSuccessResponse(List(validNino, validNino))))
       )
     } else if (utr.equalsIgnoreCase(badUtrInvalidNino)) {
       Future.successful(
