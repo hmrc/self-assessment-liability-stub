@@ -29,7 +29,7 @@ import scala.concurrent.Future
 
 @Singleton()
 class HipController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
-  def getSelfAssessmentData(utr: String, dateFrom: LocalDate, dateTo: LocalDate): Action[AnyContent] =
+  def getSelfAssessmentData(utr: String, dateFrom: String, dateTo: String): Action[AnyContent] =
     Action.async { implicit request =>
       if (utr.equalsIgnoreCase(badUtrHipInvalidCorrelationId)) {
         Future.successful(

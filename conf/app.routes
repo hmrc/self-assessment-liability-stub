@@ -2,4 +2,4 @@
 
 GET        /citizen-details/sautr/:utr                              controllers.CitizenDetailsController.getNino(utr)
 GET        /mtd-identifier-lookup/nino/:nino                        controllers.MtdIdLookupController.getMtdId(nino)
-GET        /individuals/self-assessment/account/:utr/        controllers.HipController.getSelfAssessmentData(utr, dateFrom: LocalDate, dateTo:LocalDate)
+GET        /individuals/self-assessment/account/:utr/        controllers.HipController.getSelfAssessmentData(utr, dateFrom: String, dateTo:String)

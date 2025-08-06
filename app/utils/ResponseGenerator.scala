@@ -26,14 +26,16 @@ import scala.util.Random
 object ResponseGenerator {
   private val random = new Random()
   private val chargeTypes = List("ITSA", "Penalty", "PAYE")
+  private val statementMonths = List(4,10)
   private val amendmentTypes = List("payment", "credit")
   private val paymentMethods = List("bank transfer", "card", "direct debit", "cheque")
   private val refundStatuses = List("processed", "pending", "rejected")
 
   def generateResponse(fromDate: LocalDate, toDate: LocalDate): HipResponse = {
-    val records = (fromYear to toYear).map { year =>
+    val records = (fromDate.getYear to toDate.getYear).map { year =>
+      val chooseRandomStatementPeriod : LocalDate = LocalDate.of(year,random.shuffle(statementMonths).head, 1 )
       val numChargesPerYear = random.nextInt(2) + 1
-      val charges = (1 to numChargesPerYear).map(_ => generateCharge(year)).toSet
+      val charges = (1 to numChargesPerYear).map(_ => generateCharge(chooseRandomStatementPeriod)).toSet
       val refunds = generateRefunds(year)
       val paymentHistory = generatePaymentHistory(year, charges)
 
@@ -67,7 +69,7 @@ object ResponseGenerator {
     }
   }
 
-  def generateCharge(year: Int): ChargeDetails = {
+  def generateCharge(statementDate: LocalDate): ChargeDetails = {
     val totalChargeAmount = random.between(500, 50000)
     val chargeType = random.shuffle(chargeTypes).head
 
