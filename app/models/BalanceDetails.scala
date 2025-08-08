@@ -18,15 +18,17 @@ package models
 
 import play.api.libs.json.{Json, OFormat}
 
+import java.time.LocalDate
+
 case class BalanceDetails(
-    totalOverdueBalance: Double,
-    totalPayableBalance: Double,
-    payableDueDate: String,
-    totalPendingBalance: Double,
-    pendingDueDate: String,
-    totalBalance: Double,
-    totalCreditAvailable: Double,
-    codedOutDetail: Option[Set[CodedOutDetail]] = None
+                           totalOverdueBalance: Double,
+                           totalPayableBalance: Double,
+                           earliestPayableDueDate: Option[LocalDate],
+                           totalPendingBalance: Double,
+                           earliestPendingDueDate: Option[LocalDate],
+                           totalBalance: Double,
+                           totalCreditAvailable: Double,
+                           codedOutDetail: Option[Set[CodedOutDetail]]= None
 )
 
 object BalanceDetails {

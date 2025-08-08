@@ -21,18 +21,18 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDate
 
 case class ChargeDetails(
-    chargeId: String,
-    creationDate: LocalDate,
-    chargeType: String,
-    chargeAmount: Double,
-    outstandingAmount: Double,
-    taxYear: String,
-    dueDate: LocalDate,
-    interestAmountDue: Option[Double],
-    accruingInterest: Option[Double],
-    accruingInterestDateRange: Option[AccruingInterestDateRange],
-    accruingInterestRate: Option[Double],
-    amendments: Option[Set[Amendments]]
+                          chargeId: String,
+                          creationDate: LocalDate,
+                          chargeType: String,
+                          chargeAmount: Double,
+                          outstandingAmount: Double,
+                          taxYear: String,
+                          dueDate: LocalDate,
+                          outstandingInterestDue: Option[Double],
+                          accruingInterest: Option[Double],
+                          accruingInterestPeriod: Option[AccruingInterestPeriod],
+                          accruingInterestRate: Option[Double],
+                          amendments: Option[Set[Amendments]]
 )
 
 object ChargeDetails {

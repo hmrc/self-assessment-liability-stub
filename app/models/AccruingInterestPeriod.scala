@@ -18,11 +18,13 @@ package models
 
 import play.api.libs.json.{Json, OFormat}
 
-case class AccruingInterestDateRange(
-    interestStartDate: String,
-    interestEndDate: String
+import java.time.LocalDate
+
+case class AccruingInterestPeriod(
+                                      interestStartDate: LocalDate,
+                                      interestEndDate: LocalDate
 )
 
-object AccruingInterestDateRange {
-  implicit val format: OFormat[AccruingInterestDateRange] = Json.format[AccruingInterestDateRange]
+object AccruingInterestPeriod {
+  implicit val format: OFormat[AccruingInterestPeriod] = Json.format[AccruingInterestPeriod]
 }

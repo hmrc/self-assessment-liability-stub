@@ -54,6 +54,13 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       hipResponse.paymentHistoryDetails.get.size should (be > 0 and be <= 4)
     }
 
+    "Generate a response from a given year with optional sets" in {
+      val emptySet = Set.empty
+      emptySet.sum mustBe 0
+
+
+    }
+
     "Generate a response from a given year without optional sets" in {
       when(ResponseGenerator.generateRefunds(any())).thenReturn(Set.empty)
       when(ResponseGenerator.generatePaymentHistory(any(), any())).thenReturn(Set.empty)
@@ -90,13 +97,13 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       chargeDetails.outstandingAmount should (be >= 0.00 and be < 5500.00)
       chargeDetails.taxYear shouldBe s"$year-${year + 1}"
       LocalDate.parse(chargeDetails.dueDate).getYear shouldBe year + 1
-      chargeDetails.interestAmountDue.get should (be >= 0.00 and be < 200.00)
+      chargeDetails.outstandingInterestDue.get should (be >= 0.00 and be < 200.00)
       chargeDetails.accruingInterest.get should (be >= 0.00 and be < 200.00)
       LocalDate
-        .parse(chargeDetails.accruingInterestDateRange.get.interestStartDate)
+        .parse(chargeDetails.accruingInterestPeriod.get.interestStartDate)
         .getYear shouldBe year + 1
       LocalDate
-        .parse(chargeDetails.accruingInterestDateRange.get.interestEndDate)
+        .parse(chargeDetails.accruingInterestPeriod.get.interestEndDate)
         .getYear shouldBe year + 1
       chargeDetails.accruingInterestRate.get shouldBe 0.05
       chargeDetails.amendments.get.size should (be >= 1 and be <= 3)
@@ -110,9 +117,9 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
       val chargeDetails: ChargeDetails = ResponseGenerator.generateCharge(year)
 
-      chargeDetails.interestAmountDue shouldBe None
+      chargeDetails.outstandingInterestDue shouldBe None
       chargeDetails.accruingInterest shouldBe None
-      chargeDetails.accruingInterestDateRange shouldBe None
+      chargeDetails.accruingInterestPeriod shouldBe None
       chargeDetails.accruingInterestRate shouldBe None
       chargeDetails.amendments shouldBe None
       chargeDetails.codedOutDetail shouldBe None
@@ -129,7 +136,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       LocalDate.parse(amendments.amendmentDate).getYear shouldBe year
       amendments.amendmentAmount should (be >= 0.00 and be <= maxAmount)
       amendments.amendmentReason shouldBe "payment"
-      amendments.newChargeBalance.get shouldBe maxAmount - amendments.amendmentAmount
+      amendments.updatedChargeAmount.get shouldBe maxAmount - amendments.amendmentAmount
       List("bank transfer", "card", "direct debit", "cheque") should contain(
         amendments.paymentMethod.get
       )
@@ -165,17 +172,17 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
       refundDetails.size should (be >= 1 and be <= 2)
       refundDetails.foreach(refund => {
-        LocalDate.parse(refund.issueDate).getYear shouldBe year
+        LocalDate.parse(refund.refundDate).getYear shouldBe year
         List("bank transfer", "card", "direct debit", "cheque") should contain(
           refund.refundMethod.get
         )
         LocalDate.parse(refund.refundRequestDate.get).getYear shouldBe year - 1
         refund.refundRequestAmount should (be >= 100.00 and be < 1100.00)
-        refund.refundReference.get.toInt should (be >= 0 and be < 1231232131)
+        refund.refundDescription.get.toInt should (be >= 0 and be < 1231232131)
         refund.interestAddedToRefund.get shouldBe ResponseGenerator.setCurrencyPrecision(
           refund.refundRequestAmount * 0.015
         )
-        refund.refundActualAmount shouldBe refund.refundRequestAmount + refund.interestAddedToRefund.get
+        refund.totalRefundAmount shouldBe refund.refundRequestAmount + refund.interestAddedToRefund.get
         List("processed", "pending", "rejected") should contain(refund.refundStatus.get)
       })
     }
@@ -221,9 +228,9 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
       balanceDetails.totalOverdueBalance shouldBe totalOutstanding
       balanceDetails.totalPayableBalance should be <= balanceDetails.totalOverdueBalance
-      LocalDate.parse(balanceDetails.payableDueDate).getYear shouldBe year
+      LocalDate.parse(balanceDetails.earliestPayableDueDate).getYear shouldBe year
       balanceDetails.totalPendingBalance should (be >= totalOutstanding and be < totalOutstanding + 2000)
-      LocalDate.parse(balanceDetails.pendingDueDate).getYear should (be > year and be <= year + 2)
+      LocalDate.parse(balanceDetails.earliestPendingDueDate).getYear should (be > year and be <= year + 2)
       balanceDetails.totalBalance shouldBe totalChargeAmount
       balanceDetails.totalCodedOut shouldBe totalCodedOut
       balanceDetails.totalCreditAvailable should (be >= 0.00 and be < 1000.00)

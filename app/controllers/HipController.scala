@@ -18,12 +18,13 @@ package controllers
 
 import models.HipResponse
 import utils.constants.RequestResponseConstants.*
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsResultException, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.ResponseGenerator
 
 import java.time.LocalDate
+import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
@@ -68,9 +69,18 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
           ServiceUnavailable(Json.obj("message" -> "Service unavailable"))
         )
       } else {
-        val hipResponse: HipResponse = ResponseGenerator.generateResponse(dateFrom.getYear, dateTo.getYear)
-        val json: JsValue = Json.toJson(hipResponse)
-        Future.successful(Ok(json))
+        try{
+          val fromDate = LocalDate.parse(dateFrom)
+          val toDate = LocalDate.parse(dateTo)
+          val hipResponse: HipResponse = ResponseGenerator.generateResponse(fromDate, toDate)
+          val json: JsValue = Json.toJson(hipResponse)
+          Future.successful(Ok(json))
+        } catch {
+          case _: DateTimeParseException => Future.successful(BadRequest(
+            Json.obj("message" -> "Submission has not passed validation. Invalid Correlation Id.")
+          ))
+        }
+
       }
     }
 }

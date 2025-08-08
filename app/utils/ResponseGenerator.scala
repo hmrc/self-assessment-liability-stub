@@ -16,39 +16,38 @@
 
 package utils
 
-import models.{AccruingInterestDateRange, Amendments, BalanceDetails, ChargeDetails, CodedOutDetail, HipResponse, PaymentHistoryDetails, RefundDetails}
+import models.*
 
-import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, MonthDay}
-import scala.collection.mutable
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import scala.util.Random
 
 object ResponseGenerator {
-  private val random = new Random()
-  private val chargeTypes = List("ITSA", "Penalty", "PAYE")
-  private val statementMonths = List(4,10)
-  private val amendmentTypes = List("payment", "credit")
-  private val paymentMethods = List("bank transfer", "card", "direct debit", "cheque")
-  private val refundStatuses = List("processed", "pending", "rejected")
+  private lazy val random = new Random()
+  private val randomChargeType = random.shuffle(List("ITSA", "Penalty", "PAYE", "POA")).head
+  private val randomStatementMonth = random.shuffle(List(4,10)).head
+  private val randomPaymentMethod = random.shuffle(List("bank transfer", "card", "direct debit", "cheque")).head
 
+
+  
   def generateResponse(fromDate: LocalDate, toDate: LocalDate): HipResponse = {
     val records = (fromDate.getYear to toDate.getYear).map { year =>
-      val chooseRandomStatementPeriod : LocalDate = LocalDate.of(year,random.shuffle(statementMonths).head, 1 )
-      val numChargesPerYear = random.nextInt(2) + 1
-      val charges = (1 to numChargesPerYear).map(_ => generateCharge(chooseRandomStatementPeriod)).toSet
-      val refunds = generateRefunds(year)
-      val paymentHistory = generatePaymentHistory(year, charges)
+      val chooseRandomStatementDate : LocalDate = LocalDate.of(year,randomStatementMonth, 1 )
+      val numberOfStatementsPerYear = random.nextInt(2) + 1
+      val payments = (1 to numberOfStatementsPerYear).map(_ => generatePaymentHistory(chooseRandomStatementDate)).toSet
+      val charges =   generateCharge(chooseRandomStatementDate,payments)
+      val refunds = calculateRefunds(payments, charges)
 
-      (charges, refunds, paymentHistory)
+
+      (charges,payments, refunds )
     }
 
     val allCharges = records.flatMap(_._1).toSet
-    val allRefunds = records.flatMap(_._2).toSet
-    val allPaymentHistory = records.flatMap(_._3).toSet
+    val allPaymentHistory = records.flatMap(_._2).toSet
+    val allRefunds = records.flatMap(_._3).toSet
 
-    val balanceDetails = generateBalanceDetails(fromYear, allCharges)
-
-    val codedOut = if (random.nextBoolean()) Some(Set(generateCodedOutDetail(year) else None
+    val balanceDetails = generateBalanceDetails(allCharges, allPaymentHistory)
+    
 
     HipResponse(
       balanceDetails,
@@ -58,161 +57,118 @@ object ResponseGenerator {
     )
   }
 
-  def getTaxYear(fromDate: LocalDate): Int = {
-    val taxYearStart: MonthDay = MonthDay.parse("--04-06")
-    val fromDateMonthDay: MonthDay = MonthDay.from(fromDate)
 
-    if (fromDateMonthDay.isBefore(taxYearStart)) {
-      fromDate.getYear - 1
-    } else {
-      fromDate.getYear
-    }
-  }
-
-  def generateCharge(statementDate: LocalDate): ChargeDetails = {
-    val totalChargeAmount = random.between(500, 50000)
-    val chargeType = random.shuffle(chargeTypes).head
-
-    val amendments = if (year < LocalDate.now().getYear) {
-      Some(generateAmendments(year, totalChargeAmount))
-    } else None
-
-    val outstandingAmount = totalChargeAmount - amendments.getOrElse(Set.empty).map(_.amendmentAmount).sum
-    val isLate = random.nextBoolean()
-    val interestStartDate = generateDateInYear(year + 1)
-    val interestEndDate = generateDateInYear(year + 1, isEndOfYear = true)
-
-    val interestAmount = random.nextInt(200).toDouble
-    ChargeDetails(
-      chargeId = generateChargeId(),
-      creationDate = LocalDate().withYear(year),
-      chargeType = chargeType,
-      chargeAmount = totalChargeAmount,
-      outstandingAmount = outstandingAmount,
-      taxYear = s"$year-${year + 1}",
-      dueDate = LocalDate().withYear(year).plusMonths(3),
-      interestAmountDue = if isLate then Some(interestAmount) else None,
-      accruingInterest = if isLate then Some(interestAmount) else None,
-      accruingInterestDateRange =
-        if isLate then Some(AccruingInterestDateRange(interestStartDate, interestEndDate))
-        else None,
-      accruingInterestRate = if isLate then Some(0.05) else None,
-      amendments = amendments
+  private def generatePaymentHistory(statementDate: LocalDate): PaymentHistoryDetails = {
+    val paymentDate = statementDate.plusDays(random.nextInt(59))
+    val paymentAmount = random.between(500,50000)
+    PaymentHistoryDetails(
+      paymentAmount = paymentAmount,
+      paymentReference = generatePaymentReference(),
+      paymentMethod = Some(randomPaymentMethod),
+      paymentDate = paymentDate,
+      processedDate = Some(paymentDate.plusDays(random.nextInt(6))),
+      allocationReference = Some(List(generateChargeId()))
     )
   }
 
-  def generateAmendments(year: Int, totalChargeAmount: Double): Set[Amendments] = {
-    val numberOfAmendments = random.nextInt(3) + 1
-    var remainingAmount = totalChargeAmount
-    val amendments = mutable.Set.empty[Amendments]
 
-    for (i <- 1 to numberOfAmendments) {
-      if (remainingAmount > 0) {
-        val maxAmendmentAmount = if (i == numberOfAmendments) {
-          remainingAmount
-        } else {
-          math.min(remainingAmount * 0.8, remainingAmount - (numberOfAmendments - i) * (totalChargeAmount * 0.1))
-        }
-
-        val amendment = generateAmendment(year, maxAmendmentAmount, remainingAmount)
-        amendments += amendment
-        remainingAmount -= amendment.amendmentAmount
-      }
-    }
-
-    amendments.toSet
+  private def biasedRandomMultiplication(value:Double): Double = {
+    val biasedList : List[Double] = List(0.95,0.96,0.97,0.98,0.99,1,1,1,1,1,1,1,1,1,1,1.01,1.02,1.03,1.04,1.05)
+    value * random.shuffle(biasedList).head
   }
 
-  def generateAmendment(year: Int, maxAmount: Double, currentBalance: Double): Amendments = {
-    val amendmentReason = random.shuffle(amendmentTypes).head
+  def generateCharge(statementDate: LocalDate, payments: Set[PaymentHistoryDetails]): Set[ChargeDetails] = {
+    val isNotRecentStatement: Boolean = statementDate.isBefore(LocalDate.now().minusDays(45))
+    val dueDate: LocalDate = statementDate.plusMonths(2)
+    val taxYear = s"${statementDate.getYear}-${statementDate.getYear + 1}"
 
-    // Ensure amendment amount doesn't exceed the available balance and is reasonable
-    val minAmount = math.max(1.0, maxAmount * 0.1)
-    val amendmentAmount = if (maxAmount <= minAmount) {
-      maxAmount
-    } else {
-      random.between(minAmount, maxAmount)
-    }
 
-    Amendments(
-      amendmentDate = generateDateInYear(year),
-      amendmentAmount = amendmentAmount,
-      amendmentReason = amendmentReason,
-      newChargeBalance = Some(currentBalance - amendmentAmount),
-      paymentMethod =
-        if (amendmentReason == "payment")
-          Some(paymentMethods(random.nextInt(paymentMethods.length)))
-        else None,
-      paymentDate = if (amendmentReason == "payment") Some(generateDateInYear(year)) else None
-    )
-  }
-
-  def generateCodedOutDetail(year: Int, maxAmount: Double): CodedOutDetail = {
-    CodedOutDetail(
-      totalAmount = random.between(500, maxAmount),
-      effectiveStartDate = ???,
-      effectiveEndDate = ???
-    )
-  }
-
-  def generateRefunds(year: Int): Set[RefundDetails] = {
-    if (random.nextBoolean() && year < getTaxYear(LocalDate.now())) {
-      val numRefunds = random.nextInt(2) + 1
-      (1 to numRefunds)
-        .map(_ => {
-          val requestAmount = random.nextInt(1000) + 100
-          val interest = requestAmount * 0.015
-
-          RefundDetails(
-            issueDate = generateDateInYear(year),
-            refundMethod = Some(paymentMethods(random.nextInt(paymentMethods.length))),
-            refundRequestDate = Some(generateDateInYear(year - 1, isEndOfYear = true)),
-            refundRequestAmount = requestAmount,
-            refundReference = Some(generatePaymentReference()),
-            interestAddedToRefund = Some(interest),
-            refundActualAmount = requestAmount + interest,
-            refundStatus = Some(refundStatuses(random.nextInt(refundStatuses.length)))
-          )
-        })
-        .toSet
-    } else Set.empty
-  }
-
-  def generatePaymentHistory(
-      year: Int,
-      charges: Set[ChargeDetails]
-  ): Set[PaymentHistoryDetails] = {
-    charges.flatMap { charge =>
-      charge.amendments
-        .getOrElse(Set.empty)
-        .filter(_.amendmentReason == "payment")
-        .map { amendment =>
-          PaymentHistoryDetails(
-            paymentAmount = amendment.amendmentAmount,
-            paymentId = generatePaymentReference(),
-            paymentMethod = amendment.paymentMethod.getOrElse("bank_transfer"),
-            paymentDate = amendment.paymentDate.getOrElse(generateDateInYear(year)),
-            dateProcessed = amendment.amendmentDate,
-            allocationReference = Some(charge.chargeId)
-          )
-        }
+    payments.map { paymentItem =>
+      val processDate = paymentItem.processedDate.getOrElse(dueDate.minusDays(random.nextInt(10)))
+      val chargeAmount: Double = biasedRandomMultiplication(paymentItem.paymentAmount)
+      val amendmentAmount = if chargeAmount < paymentItem.paymentAmount then chargeAmount else paymentItem.paymentAmount
+      val outstandingAmount = chargeAmount-amendmentAmount
+      ChargeDetails(
+        chargeId = paymentItem.allocationReference.map(_.head).getOrElse(generateChargeId()),
+        creationDate = statementDate,
+        chargeType = randomChargeType,
+        chargeAmount = chargeAmount,
+        taxYear = taxYear,
+        dueDate = dueDate,
+        amendments = if isNotRecentStatement then Some(generateAmendment(processDate, amendmentAmount, paymentItem)) else None,
+        outstandingAmount = outstandingAmount + calculateInterestDue(dueDate, outstandingAmount).getOrElse(0.0) ,
+        outstandingInterestDue = if outstandingAmount > 0 then calculateInterestDue(dueDate, outstandingAmount) else None,
+        accruingInterest = if outstandingAmount > 0 then calculateInterestDue(dueDate, outstandingAmount) else None,
+        accruingInterestPeriod =
+          if outstandingAmount > 0 then Some(AccruingInterestPeriod(dueDate.plusMonths(1), LocalDate.now()))
+          else None,
+        accruingInterestRate = if outstandingAmount > 0 then Some(0.05) else None,
+      )
     }
   }
+  
+  private def calculateInterestDue(dueDate: LocalDate, outstandingAmount: Double): Option[Double] = {
+    Some(outstandingAmount * (ChronoUnit.MONTHS.between(dueDate, LocalDate.now())/12) * 0.05)
+  }
 
-  def generateBalanceDetails(year: Int, charges: Set[ChargeDetails]): BalanceDetails = {
-    val totalOutstanding = charges.map(_.outstandingAmount).sum
-    val totalChargeAmount = charges.map(_.chargeAmount).sum
-    val codedOutDetail = ???  //implement logic
+
+   def generateAmendment(amendmentDate: LocalDate, amount:Double, payment:PaymentHistoryDetails): Set[Amendments] = {
+    Set(Amendments(
+      amendmentDate = amendmentDate,
+      amendmentAmount = amount,
+      amendmentReason = "payment",
+      paymentMethod = payment.paymentMethod,
+      paymentDate = Some(payment.paymentDate)
+    ))
+  }
+
+
+  private def calculateRefunds(payments: Set[PaymentHistoryDetails], charges: Set[ChargeDetails]): Set[RefundDetails] = {
+      val randomDayOfRefund = random.nextInt(45)
+      val remainingBalance= payments.map(_.paymentAmount).sum - charges.map(_.chargeAmount).sum
+      val processedDate = payments.map(_.processedDate.map(_.plusDays(randomDayOfRefund)).getOrElse(charges.map(_.dueDate).max.plusDays(randomDayOfRefund))).max
+      val requestDate = processedDate.minusDays(60)
+      val interest = (ChronoUnit.DAYS.between(requestDate,processedDate)/7).toDouble * 1.001
+          if(remainingBalance>0){
+            Set(RefundDetails(
+              refundDate = processedDate,
+              refundMethod = Some(randomPaymentMethod),
+              refundRequestDate = Some(requestDate),
+              refundRequestAmount = remainingBalance,
+              refundDescription = Some(generatePaymentReference()),
+              interestAddedToRefund = Some(interest),
+              totalRefundAmount = remainingBalance + interest,
+              refundStatus = if processedDate.isAfter(LocalDate.now()) then Some("pending") else Some("accepted")))
+          }
+          else Set.empty
+
+  }
+  def generateBalanceDetails(charges: Set[ChargeDetails], payments: Set[PaymentHistoryDetails]): BalanceDetails = {
+    val today = LocalDate.now()
+    val allOverDueCharges = charges.filter(_.dueDate.isBefore(today))
+    val totalOverDueBalance = allOverDueCharges.map(_.outstandingAmount).sum
+    val allPayableCharges = charges.filter(_.dueDate.isAfter(today.plusDays(29)))
+    val totalPayableBalance = allPayableCharges.map(_.outstandingAmount).sum
+    val allPendingCharges = charges.filter(_.dueDate.isAfter(today.plusDays(30)))
+    val totalPendingBalance = allPendingCharges.map(_.outstandingAmount).sum
+    val totalCredit = if totalPayableBalance+totalPendingBalance > 0 then 0.0 else payments.filter(_.paymentDate.isAfter(today.minusDays(20))).map(_.paymentAmount).sum
     BalanceDetails(
-      totalOverdueBalance =
-        if (year < getTaxYear(LocalDate.now())) totalOutstanding else 0.00,
-      totalPayableBalance = totalOutstanding * random.nextDouble(),
-      payableDueDate = generateDateInYear(year, isEndOfYear = true),
-      totalPendingBalance = totalOutstanding + random.nextInt(2000),
-      pendingDueDate = generateFutureDate(year),
-      totalBalance = totalChargeAmount,
-      totalCreditAvailable = random.nextInt(1000)
+      totalOverdueBalance = roundValue(totalOverDueBalance),
+      totalPayableBalance = roundValue(totalPayableBalance),
+      earliestPayableDueDate = getTheEarliestDueDate(allPayableCharges),
+      totalPendingBalance = roundValue(totalPendingBalance),
+      earliestPendingDueDate = getTheEarliestDueDate(allPendingCharges),
+      totalBalance = roundValue(totalOverDueBalance+ totalPayableBalance + totalPendingBalance),
+      totalCreditAvailable = totalCredit
     )
+  }
+
+  private def getTheEarliestDueDate(charges: Set[ChargeDetails]): Option[LocalDate] = {
+    if charges.nonEmpty then Some(charges.map(_.dueDate).min) else None
+  }
+
+  private def roundValue(num: Double): Double ={
+    BigDecimal(num).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
   }
 
   private def generatePaymentReference(): String = random.nextInt(1231232131).toString
@@ -222,22 +178,6 @@ object ResponseGenerator {
     val prefix = (1 to 2).map(_ => letters(random.nextInt(letters.length))).mkString
     val numbers = (1 to 7).map(_ => random.nextInt(10)).mkString
     s"$prefix$numbers"
-  }
-
-  private def generateDateInYear(year: Int, isEndOfYear: Boolean = false): String = {
-    val month = if (isEndOfYear) random.nextInt(6) + 7 else random.nextInt(12) + 1
-    val maxDay = month match {
-      case 2              => if (year % 4 == 0) 29 else 28
-      case 4 | 6 | 9 | 11 => 30
-      case _              => 31
-    }
-    val day = random.nextInt(maxDay) + 1
-    LocalDate.of(year, month, day).format(DateTimeFormatter.ISO_LOCAL_DATE)
-  }
-
-  private def generateFutureDate(baseYear: Int): String = {
-    val futureYear = baseYear + random.nextInt(2) + 1
-    generateDateInYear(futureYear)
   }
   
 }
