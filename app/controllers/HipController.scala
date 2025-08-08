@@ -17,11 +17,11 @@
 package controllers
 
 import models.HipResponse
-import utils.constants.RequestResponseConstants.*
-import play.api.libs.json.{JsResultException, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.ResponseGenerator
+import utils.constants.RequestResponseConstants.*
 
 import java.time.LocalDate
 import java.time.format.DateTimeParseException

@@ -16,230 +16,217 @@
 
 package utils
 
-import models.{
-  Amendments,
-  BalanceDetails,
-  ChargeDetails,
-  CodedOutDetail,
-  HipResponse,
-  PaymentHistoryDetails,
-  RefundDetails
-}
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.scalatestplus.mockito.MockitoSugar.mock
-
-import java.time.LocalDate
+import models.HipResponse
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.util.Random
+import java.time.LocalDate
 
 class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
-  private val random: Random = mock[Random]
+  val fromDate: LocalDate = LocalDate.of(2023, 1, 1)
+  val toDate: LocalDate = LocalDate.of(2023, 12, 31)
 
-  private val chargeDetailsSet: Set[ChargeDetails] =
-    Set(ResponseGenerator.generateCharge(2023), ResponseGenerator.generateCharge(2024))
-  private val totalOutstanding: Double = chargeDetailsSet.map(_.outstandingAmount).sum
-  private val totalChargeAmount = chargeDetailsSet.map(_.chargeAmount).sum
-  private val totalCodedOut =
-    chargeDetailsSet.flatMap(_.codedOutDetail.getOrElse(Set.empty)).flatMap(_.amount).sum
+  "ResponseGenerator" should {
+    "generate a response from given date range" in {
 
-  "Generate JSON response" should {
-    "Generate a response from a given year with optional sets" in {
-      val hipResponse: HipResponse = ResponseGenerator.generateResponse(2023, 2024)
+      val hipResponse: HipResponse = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      hipResponse.chargeDetails.get.size should (be >= 2 and be <= 4)
-      hipResponse.refundDetails.get.size should (be > 0 and be <= 4)
-      hipResponse.paymentHistoryDetails.get.size should (be > 0 and be <= 4)
+      hipResponse.balanceDetails should not be null
+      hipResponse.chargeDetails shouldBe defined
+      hipResponse.refundDetails shouldBe defined
+      hipResponse.paymentHistoryDetails shouldBe defined
+
+      hipResponse.chargeDetails.foreach { charges =>
+        charges.size should be <= 3
+        charges.foreach {
+          charge => charge.creationDate.getYear should (be >= 2023 and be <= 2024)
+
+          hipResponse.paymentHistoryDetails.foreach { payments =>
+            payments.size should be <= 3
+            payments.foreach { payment =>
+              payment.paymentDate.getYear should (be >= 2023 and be <= 2024)
+              payment.paymentDate should be > charge.creationDate
+            }
+          }
+        }
+      }
     }
 
-    "Generate a response from a given year with optional sets" in {
-      val emptySet = Set.empty
-      emptySet.sum mustBe 0
+    "generate response with single year range" in {
 
+      val hipResponse: HipResponse = ResponseGenerator.generateResponse(fromDate, toDate)
 
+      hipResponse.balanceDetails should not be null
+      hipResponse.chargeDetails shouldBe defined
+      hipResponse.refundDetails shouldBe defined
+      hipResponse.paymentHistoryDetails shouldBe defined
+
+      val charges = hipResponse.chargeDetails.get
+      val payments = hipResponse.paymentHistoryDetails.get
+
+      charges should not be empty
+      payments should not be empty
+
+      charges.foreach { charge =>
+        charge.creationDate.getYear shouldBe 2023
+        charge.taxYear shouldBe "2023-2024"
+      }
     }
 
-    "Generate a response from a given year without optional sets" in {
-      when(ResponseGenerator.generateRefunds(any())).thenReturn(Set.empty)
-      when(ResponseGenerator.generatePaymentHistory(any(), any())).thenReturn(Set.empty)
+    "generate valid charge details structure" in {
 
-      val hipResponse: HipResponse = ResponseGenerator.generateResponse(2023, 2024)
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      hipResponse.chargeDetails shouldBe None
-      hipResponse.refundDetails shouldBe None
-      hipResponse.paymentHistoryDetails shouldBe None
+      val charges = response.chargeDetails.get
+
+      charges.foreach { charge =>
+
+        charge.chargeId should not be empty
+        charge.chargeId should have length 9
+        charge.chargeId.take(2) should fullyMatch regex "[A-Z]{2}"
+        charge.chargeId.drop(2) should fullyMatch regex "[0-9]{7}"
+
+        charge.creationDate should not be null
+        List("ITSA", "Penalty", "PAYE", "POA") should contain(charge.chargeType)
+        charge.chargeAmount should be > 0.0
+        charge.taxYear should fullyMatch regex "[0-9]{4}-[0-9]{4}"
+        charge.dueDate should not be null
+        charge.outstandingAmount should be >= 0.0
+
+        if (charge.outstandingAmount > 0) {
+          charge.outstandingInterestDue shouldBe defined
+          charge.accruingInterest shouldBe defined
+          charge.accruingInterestPeriod shouldBe defined
+          charge.accruingInterestRate shouldBe Some(0.05)
+        } else {
+          charge.outstandingInterestDue shouldBe None
+          charge.accruingInterest shouldBe None
+          charge.accruingInterestPeriod shouldBe None
+          charge.accruingInterestRate shouldBe None
+        }
+
+        val isRecentStatement = charge.creationDate.isAfter(LocalDate.now().minusDays(45))
+        if (!isRecentStatement) {
+          charge.amendments shouldBe defined
+          charge.amendments.get should not be empty
+          charge.amendments.get.foreach { amendment =>
+            amendment.amendmentDate should not be null
+            amendment.amendmentAmount should be >= 0.0
+            amendment.amendmentReason shouldBe "payment"
+            amendment.paymentMethod shouldBe defined
+            List("bank transfer", "card", "direct debit", "cheque") should contain(
+              amendment.paymentMethod.get
+            )
+            amendment.paymentDate shouldBe defined
+          }
+        }
+      }
     }
 
-    "Get the correct tax year" in {
-      val date1: LocalDate = LocalDate.parse("2024-07-01")
-      val date2: LocalDate = LocalDate.parse("2025-01-01")
-      val date3: LocalDate = LocalDate.parse("2025-04-06")
-      val date4: LocalDate = LocalDate.parse("2025-07-01")
-      ResponseGenerator.getTaxYear(date1) shouldBe 2024
-      ResponseGenerator.getTaxYear(date2) shouldBe 2024
-      ResponseGenerator.getTaxYear(date3) shouldBe 2025
-      ResponseGenerator.getTaxYear(date4) shouldBe 2025
+    "generate valid payment history structure" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
+
+      val payments = response.paymentHistoryDetails.get
+
+      payments should not be empty
+      payments.foreach { payment =>
+        payment.paymentAmount should (be >= 500.00 and be <= 50000.00)
+        payment.paymentReference should not be empty
+        payment.paymentReference should fullyMatch regex "[0-9]+"
+        payment.paymentMethod shouldBe defined
+        List("bank transfer", "card", "direct debit", "cheque") should contain(
+          payment.paymentMethod.get
+        )
+        payment.paymentDate should not be null
+        payment.processedDate shouldBe defined
+        payment.allocationReference shouldBe defined
+        payment.allocationReference.get should have size 1
+        payment.allocationReference.get.head should have length 9
+      }
     }
 
-    "Generate charge details with optional values" in {
-      when(random.nextBoolean()).thenReturn(true)
+    "generate valid refund details structure" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      val year: Int = 2025
+      val refunds = response.refundDetails.get
 
-      val chargeDetails: ChargeDetails = ResponseGenerator.generateCharge(year)
-
-      chargeDetails.chargeId.length should (be >= 2 and be <= 9)
-      LocalDate.parse(chargeDetails.creationDate).getYear shouldBe year
-      List("ITSA", "Penalty", "PAYE") should contain(chargeDetails.chargeType)
-      chargeDetails.chargeAmount should (be >= 500.00 and be < 5500.00)
-      chargeDetails.outstandingAmount should (be >= 0.00 and be < 5500.00)
-      chargeDetails.taxYear shouldBe s"$year-${year + 1}"
-      LocalDate.parse(chargeDetails.dueDate).getYear shouldBe year + 1
-      chargeDetails.outstandingInterestDue.get should (be >= 0.00 and be < 200.00)
-      chargeDetails.accruingInterest.get should (be >= 0.00 and be < 200.00)
-      LocalDate
-        .parse(chargeDetails.accruingInterestPeriod.get.interestStartDate)
-        .getYear shouldBe year + 1
-      LocalDate
-        .parse(chargeDetails.accruingInterestPeriod.get.interestEndDate)
-        .getYear shouldBe year + 1
-      chargeDetails.accruingInterestRate.get shouldBe 0.05
-      chargeDetails.amendments.get.size should (be >= 1 and be <= 3)
-      chargeDetails.codedOutDetail.get.size shouldBe 1
-    }
-
-    "Generate charge details without optional values" in {
-      when(random.nextBoolean()).thenReturn(false)
-
-      val year: Int = 2025
-
-      val chargeDetails: ChargeDetails = ResponseGenerator.generateCharge(year)
-
-      chargeDetails.outstandingInterestDue shouldBe None
-      chargeDetails.accruingInterest shouldBe None
-      chargeDetails.accruingInterestPeriod shouldBe None
-      chargeDetails.accruingInterestRate shouldBe None
-      chargeDetails.amendments shouldBe None
-      chargeDetails.codedOutDetail shouldBe None
-    }
-
-    "Generate amendment with optional values" in {
-      when(random.nextInt(any())).thenReturn(0) // Set the amendment type to "payment".
-
-      val year: Int = 2024
-      val maxAmount: Double = 5000.00
-
-      val amendments: Amendments = ResponseGenerator.generateAmendment(year, maxAmount)
-
-      LocalDate.parse(amendments.amendmentDate).getYear shouldBe year
-      amendments.amendmentAmount should (be >= 0.00 and be <= maxAmount)
-      amendments.amendmentReason shouldBe "payment"
-      amendments.updatedChargeAmount.get shouldBe maxAmount - amendments.amendmentAmount
-      List("bank transfer", "card", "direct debit", "cheque") should contain(
-        amendments.paymentMethod.get
-      )
-      LocalDate.parse(amendments.paymentDate.get).getYear shouldBe year
-    }
-
-    "Generate amendment without optional values" in {
-      when(random.nextInt(any())).thenReturn(1) // Set the amendment type to "credit".
-
-      val amendments: Amendments = ResponseGenerator.generateAmendment(2025, 1000)
-
-      amendments.paymentMethod shouldBe None
-      amendments.paymentDate shouldBe None
-    }
-
-    "Generate coded out detail" in {
-      val year: Int = 2024
-
-      val codedOutDetail: CodedOutDetail = ResponseGenerator.generateCodedOutDetail(year)
-
-      codedOutDetail.amount.get should (be >= 100.00 and be < 600.00)
-      LocalDate.parse(codedOutDetail.effectiveDate.get).getYear shouldBe year
-      codedOutDetail.taxYear.get shouldBe s"$year-${year + 1}"
-      codedOutDetail.effectiveTaxYear.get shouldBe s"${year + 1}-${year + 2}"
-    }
-
-    "Generate refunds" in {
-      when(random.nextBoolean()).thenReturn(true)
-
-      val year: Int = 2024
-
-      val refundDetails: Set[RefundDetails] = ResponseGenerator.generateRefunds(year)
-
-      refundDetails.size should (be >= 1 and be <= 2)
-      refundDetails.foreach(refund => {
-        LocalDate.parse(refund.refundDate).getYear shouldBe year
+      refunds.foreach { refund =>
+        refund.refundDate should not be null
+        refund.refundMethod shouldBe defined
         List("bank transfer", "card", "direct debit", "cheque") should contain(
           refund.refundMethod.get
         )
-        LocalDate.parse(refund.refundRequestDate.get).getYear shouldBe year - 1
-        refund.refundRequestAmount should (be >= 100.00 and be < 1100.00)
-        refund.refundDescription.get.toInt should (be >= 0 and be < 1231232131)
-        refund.interestAddedToRefund.get shouldBe ResponseGenerator.setCurrencyPrecision(
-          refund.refundRequestAmount * 0.015
-        )
-        refund.totalRefundAmount shouldBe refund.refundRequestAmount + refund.interestAddedToRefund.get
-        List("processed", "pending", "rejected") should contain(refund.refundStatus.get)
-      })
+        refund.refundRequestDate shouldBe defined
+        refund.refundRequestAmount should be > 0.0
+        refund.refundDescription shouldBe defined
+        refund.interestAddedToRefund shouldBe defined
+        refund.interestAddedToRefund.get should be >= 0.0
+        refund.totalRefundAmount should be > refund.refundRequestAmount
+        refund.refundStatus shouldBe defined
+        List("pending", "accepted") should contain(refund.refundStatus.get)
+      }
     }
 
-    "Generate empty set refunds" in {
-      when(random.nextBoolean()).thenReturn(false)
+    "generate valid balance details" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      val refundDetails: Set[RefundDetails] = ResponseGenerator.generateRefunds(2024)
+      val balanceDetails = response.balanceDetails
 
-      refundDetails.size shouldBe 0
+      balanceDetails.totalOverdueBalance should be >= 0.0
+      balanceDetails.totalPayableBalance should be >= 0.0
+      balanceDetails.totalPendingBalance should be >= 0.0
+      balanceDetails.totalBalance should be >= 0.0
+      balanceDetails.totalCreditAvailable should be >= 0.0
+
+      balanceDetails.totalOverdueBalance.toString should fullyMatch regex "[0-9]+\\.?[0-9]{0,2}"
+      balanceDetails.totalPayableBalance.toString should fullyMatch regex "[0-9]+\\.?[0-9]{0,2}"
+      balanceDetails.totalPendingBalance.toString should fullyMatch regex "[0-9]+\\.?[0-9]{0,2}"
+      balanceDetails.totalBalance.toString should fullyMatch regex "[0-9]+\\.?[0-9]{0,2}"
+
+      if (balanceDetails.totalPayableBalance > 0) {
+        balanceDetails.earliestPayableDueDate shouldBe defined
+      }
+      if (balanceDetails.totalPendingBalance > 0) {
+        balanceDetails.earliestPendingDueDate shouldBe defined
+      }
     }
 
-    "Generate payment history" in {
-      val year: Int = 2024
+    "generate consistent data relationships" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      val paymentHistoryDetails: Set[PaymentHistoryDetails] =
-        ResponseGenerator.generatePaymentHistory(year, chargeDetailsSet)
+      val charges = response.chargeDetails.get
+      val payments = response.paymentHistoryDetails.get
+      val refunds = response.refundDetails.get
 
-      paymentHistoryDetails.size shouldBe chargeDetailsSet.size
-      paymentHistoryDetails.foreach(charge => {
-        // TODO.
-      })
+      val chargeIds = charges.map(_.chargeId)
+      payments.foreach { payment =>
+        payment.allocationReference.get.foreach { ref =>
+          chargeIds should contain(ref)
+        }
+      }
+
+      val totalPayments = payments.map(_.paymentAmount).sum
+      val totalCharges = charges.map(_.chargeAmount).sum
+
+      if (totalPayments > totalCharges) {
+        refunds should not be empty
+      }
     }
 
-    "Generate empty set payment history" in {
-      val year: Int = 2024
+    "handle multi-year date ranges correctly" in {
+      val fromDate = LocalDate.of(2022, 1, 1)
+      val toDate = LocalDate.of(2024, 12, 31)
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      // Generate charge details without amendments
-      when(random.nextBoolean()).thenReturn(false)
-      val chargeDetailsWithoutAmendments: ChargeDetails = ResponseGenerator.generateCharge(year)
+      val charges = response.chargeDetails.get
 
-      val paymentHistoryDetails: Set[PaymentHistoryDetails] =
-        ResponseGenerator.generatePaymentHistory(year, Set(chargeDetailsWithoutAmendments))
+      val chargeYears = charges.map(_.creationDate.getYear)
+      chargeYears should contain allOf (2022, 2023, 2024)
 
-      paymentHistoryDetails.size shouldBe 0
-    }
-
-    "Generate balance details" in {
-      val year: Int = 2024
-
-      val balanceDetails: BalanceDetails =
-        ResponseGenerator.generateBalanceDetails(year, chargeDetailsSet)
-
-      balanceDetails.totalOverdueBalance shouldBe totalOutstanding
-      balanceDetails.totalPayableBalance should be <= balanceDetails.totalOverdueBalance
-      LocalDate.parse(balanceDetails.earliestPayableDueDate).getYear shouldBe year
-      balanceDetails.totalPendingBalance should (be >= totalOutstanding and be < totalOutstanding + 2000)
-      LocalDate.parse(balanceDetails.earliestPendingDueDate).getYear should (be > year and be <= year + 2)
-      balanceDetails.totalBalance shouldBe totalChargeAmount
-      balanceDetails.totalCodedOut shouldBe totalCodedOut
-      balanceDetails.totalCreditAvailable should (be >= 0.00 and be < 1000.00)
-    }
-
-    "Set currency precision" in {
-      ResponseGenerator.setCurrencyPrecision(0) shouldBe 0
-      ResponseGenerator.setCurrencyPrecision(1.111) shouldBe 1.11
-      ResponseGenerator.setCurrencyPrecision(1.115) shouldBe 1.12
+      charges.foreach { charge =>
+        val year = charge.creationDate.getYear
+        charge.taxYear shouldBe s"$year-${year + 1}"
+      }
     }
   }
 }
