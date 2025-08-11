@@ -16,19 +16,21 @@
 
 package controllers
 
-import utils.constants.RequestResponseConstants.*
-
+import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.constants.RequestResponseConstants.*
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class CitizenDetailsController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
+class CitizenDetailsController @Inject() (cc: ControllerComponents)
+    extends BackendController(cc)
+    with Logging {
 
-  def generateSuccessResponse(nino: String): String = {
+  def generateSuccessResponse(ninos: List[String]): String = {
     s"""
     {
       "name": {
@@ -39,7 +41,7 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents) extends Back
         "previous": []
       },
       "ids": {
-        "nino": "$nino"
+        "nino": "${ninos.mkString(",")}"
       },
       "dateOfBirth": "11121971"
     }
@@ -47,33 +49,29 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents) extends Back
   }
 
   def getNino(utr: String): Action[AnyContent] = Action.async { implicit request =>
-    if (utr.equalsIgnoreCase(badUtrInvalid)) {
-      Future.successful(
-        BadRequest(Json.obj("message" -> "Invalid SaUtr."))
-      )
-    } else if (utr.equalsIgnoreCase(badUtrNone)) {
+    if (utr.equalsIgnoreCase(noNinoFoundForUtr)) {
       Future.successful(
         NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))
       )
     } else if (utr.equalsIgnoreCase(badUtrMultiple)) {
-      Future.successful(
-        InternalServerError(Json.obj("message" -> "More than one valid matching result."))
+      val validNinos = List(validNino1, validNino2)
+      logger.info(
+        s"${validNinos.length} valid ninos associated with $badUtrMultiple returned from CID"
       )
-    } else if (utr.equalsIgnoreCase(badUtrServerError)) {
       Future.successful(
-        InternalServerError(Json.obj("message" -> "Service currently unavailable"))
+        InternalServerError(Json.parse(generateSuccessResponse(validNinos)))
       )
-    } else if (utr.equalsIgnoreCase(badUtrNinoInvalid)) {
+    } else if (utr.equalsIgnoreCase(badUtrInvalidNino)) {
       Future.successful(
-        Ok(Json.parse(generateSuccessResponse(badNinoInvalid)))
+        Ok(Json.parse(generateSuccessResponse(List(invalidNino))))
       )
     } else if (utr.equalsIgnoreCase(badUtrNinoServerError)) {
       Future.successful(
-        Ok(Json.parse(generateSuccessResponse(badNinoServerError)))
+        Ok(Json.parse(generateSuccessResponse(List(badNinoServerError))))
       )
     } else {
       Future.successful(
-        Ok(Json.parse(generateSuccessResponse(validNino)))
+        Ok(Json.parse(generateSuccessResponse(List(validNino1))))
       )
     }
   }

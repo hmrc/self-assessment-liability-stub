@@ -25,6 +25,7 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
+import utils.constants.RequestResponseConstants.*
 
 class HipControllerSpec extends AnyWordSpec with Matchers {
   private val fakeRequest = FakeRequest("GET", "/")
@@ -38,13 +39,12 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       val result =
         controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(fakeRequest)
       status(result) shouldBe Status.OK
-      // Check that the response JSON can be converted to a HipResponse.
       Json.fromJson[HipResponse](contentAsJson(result)).get
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
       val result =
-        controller.getSelfAssessmentData("0111111400", validFromDate, validToDate)(
+        controller.getSelfAssessmentData(badUtrHipInvalidCorrelationId, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.BAD_REQUEST
@@ -55,7 +55,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 401 UNAUTHORIZED with correct error message for invalid authentication credentials" in {
       val result =
-        controller.getSelfAssessmentData("0111111401", validFromDate, validToDate)(
+        controller.getSelfAssessmentData(badUtrHipUnauthorised, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.UNAUTHORIZED
@@ -66,7 +66,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 403 FORBIDDEN with correct error message when authority is denied" in {
       val result =
-        controller.getSelfAssessmentData("0111111403", validFromDate, validToDate)(
+        controller.getSelfAssessmentData(badUtrHipForbidden, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.FORBIDDEN
@@ -77,7 +77,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 404 NOT_FOUND with correct error message when UTR is not found" in {
       val result =
-        controller.getSelfAssessmentData("0111111404", validFromDate, validToDate)(
+        controller.getSelfAssessmentData(badUtrHipUtrNotFound, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.NOT_FOUND
@@ -88,7 +88,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 422 UNPROCESSABLE_ENTITY with correct error message for invalid UTR" in {
       val result =
-        controller.getSelfAssessmentData("0111111422", validFromDate, validToDate)(
+        controller.getSelfAssessmentData(badUtrHipUtrInvalid, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.UNPROCESSABLE_ENTITY
@@ -99,7 +99,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message for general internal server errors" in {
       val result =
-        controller.getSelfAssessmentData("0111111500", validFromDate, validToDate)(
+        controller.getSelfAssessmentData(badUtrHipServerError, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
@@ -108,7 +108,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 502 BAD_GATEWAY with correct error message for service communication errors" in {
       val result =
-        controller.getSelfAssessmentData("0111111502", validFromDate, validToDate)(
+        controller.getSelfAssessmentData(badUtrHipExternalServiceError, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.BAD_GATEWAY
@@ -119,7 +119,7 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
     "return 503 SERVICE_UNAVAILABLE with correct error message when service unavailable" in {
       val result =
-        controller.getSelfAssessmentData("0111111503", validFromDate, validToDate)(
+        controller.getSelfAssessmentData(badUtrHipServiceUnavailable, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.SERVICE_UNAVAILABLE

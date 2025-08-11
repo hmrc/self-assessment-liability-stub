@@ -16,11 +16,10 @@
 
 package controllers
 
-import utils.constants.RequestResponseConstants.*
-
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.constants.RequestResponseConstants.*
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -29,7 +28,7 @@ import scala.concurrent.Future
 class MtdIdLookupController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
   def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
-    if (nino.equalsIgnoreCase(badNinoInvalid)) {
+    if (nino.equalsIgnoreCase(invalidNino)) {
       Future.successful(
         BadRequest(Json.obj("message" -> "Invalid national insurance number supplied"))
       )
