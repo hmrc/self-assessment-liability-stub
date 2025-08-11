@@ -21,9 +21,9 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDate
 
 case class CodedOutDetail(
-                           totalAmount: Double,
-                           effectiveStartDate: LocalDate,
-                           effectiveEndDate: LocalDate,
+    totalAmount: Double,
+    effectiveStartDate: LocalDate,
+    effectiveEndDate: LocalDate
 )
 
 object CodedOutDetail {

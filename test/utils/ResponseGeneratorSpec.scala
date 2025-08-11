@@ -38,8 +38,8 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
       hipResponse.chargeDetails.foreach { charges =>
         charges.size should be <= 3
-        charges.foreach {
-          charge => charge.creationDate.getYear should (be >= 2023 and be <= 2024)
+        charges.foreach { charge =>
+          charge.creationDate.getYear should (be >= 2023 and be <= 2024)
 
           hipResponse.paymentHistoryDetails.foreach { payments =>
             payments.size should be <= 3

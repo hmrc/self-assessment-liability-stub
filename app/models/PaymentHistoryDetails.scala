@@ -21,12 +21,12 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDate
 
 case class PaymentHistoryDetails(
-                                  paymentAmount: Double,
-                                  paymentReference: String,
-                                  paymentMethod: Option[String],
-                                  paymentDate: LocalDate,
-                                  processedDate:Option[LocalDate],
-                                  allocationReference: Option[List[String]]
+    paymentAmount: Double,
+    paymentReference: String,
+    paymentMethod: Option[String],
+    paymentDate: LocalDate,
+    processedDate: Option[LocalDate],
+    allocationReference: Option[List[String]]
 )
 
 object PaymentHistoryDetails {

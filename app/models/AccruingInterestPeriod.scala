@@ -21,8 +21,8 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDate
 
 case class AccruingInterestPeriod(
-                                      interestStartDate: LocalDate,
-                                      interestEndDate: LocalDate
+    interestStartDate: LocalDate,
+    interestEndDate: LocalDate
 )
 
 object AccruingInterestPeriod {

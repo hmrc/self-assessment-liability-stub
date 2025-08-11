@@ -21,12 +21,12 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDate
 
 case class Amendments(
-                       amendmentDate: LocalDate,
-                       amendmentAmount: Double,
-                       amendmentReason: String,
-                       updatedChargeAmount: Option[Double]= None,
-                       paymentMethod: Option[String],
-                       paymentDate: Option[LocalDate]
+    amendmentDate: LocalDate,
+    amendmentAmount: Double,
+    amendmentReason: String,
+    updatedChargeAmount: Option[Double] = None,
+    paymentMethod: Option[String],
+    paymentDate: Option[LocalDate]
 )
 
 object Amendments {

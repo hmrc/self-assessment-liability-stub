@@ -69,16 +69,21 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
           ServiceUnavailable(Json.obj("message" -> "Service unavailable"))
         )
       } else {
-        try{
+        try {
           val fromDate = LocalDate.parse(dateFrom)
           val toDate = LocalDate.parse(dateTo)
           val hipResponse: HipResponse = ResponseGenerator.generateResponse(fromDate, toDate)
           val json: JsValue = Json.toJson(hipResponse)
           Future.successful(Ok(json))
         } catch {
-          case _: DateTimeParseException => Future.successful(BadRequest(
-            Json.obj("message" -> "Submission has not passed validation. Invalid Correlation Id.")
-          ))
+          case _: DateTimeParseException =>
+            Future.successful(
+              BadRequest(
+                Json.obj(
+                  "message" -> "Submission has not passed validation. Invalid Correlation Id."
+                )
+              )
+            )
         }
 
       }
