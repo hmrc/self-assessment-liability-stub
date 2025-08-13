@@ -88,6 +88,7 @@ object ResponseGenerator {
       val amendmentAmount =
         if chargeAmount < paymentItem.paymentAmount then chargeAmount else paymentItem.paymentAmount
       val outstandingAmount = chargeAmount - amendmentAmount
+      val interest = calculateInterestDue(dueDate, outstandingAmount)
       ChargeDetails(
         chargeId = paymentItem.allocationReference.map(_.head).getOrElse(generateChargeId()),
         creationDate = statementDate,
@@ -100,15 +101,12 @@ object ResponseGenerator {
             Some(generateAmendment(processDate, amendmentAmount, paymentItem))
           else None,
         outstandingAmount =
-          outstandingAmount + calculateInterestDue(dueDate, outstandingAmount).getOrElse(0.0),
+          outstandingAmount + interest.getOrElse(0.0),
         outstandingInterestDue =
-          if outstandingAmount > 0 then calculateInterestDue(dueDate, outstandingAmount) else None,
+          if outstandingAmount > 0 then interest else None,
         accruingInterest =
-          if outstandingAmount > 0 then calculateInterestDue(dueDate, outstandingAmount) else None,
-        accruingInterestPeriod =
-          if outstandingAmount > 0 then
-            Some(AccruingInterestPeriod(dueDate.plusMonths(1), LocalDate.now()))
-          else None,
+          if outstandingAmount > 0 then interest else None,
+        accruingInterestPeriod = interest.map(_=>AccruingInterestPeriod(dueDate.plusMonths(1), LocalDate.now())),
         accruingInterestRate = if outstandingAmount > 0 then Some(0.05) else None
       )
     }
@@ -154,7 +152,7 @@ object ResponseGenerator {
     if (remainingBalance > 0) {
       val biasedList = (85 to 99 by 1).map(_ / 100.toDouble).toList ++ List(1.0,1.0,1.0,1.0,1.0)
       val randomRefundAmount: Double = remainingBalance * random.shuffle(biasedList).head
-      val interest = (ChronoUnit.DAYS.between(requestDate, processedDate) / 28).toDouble * 1.0001 * randomRefundAmount
+      val interest = (ChronoUnit.DAYS.between(requestDate, processedDate) / 28).toDouble * 0.001 * randomRefundAmount
       Set(
         RefundDetails(
           refundDate = processedDate,
