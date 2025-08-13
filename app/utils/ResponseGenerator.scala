@@ -46,7 +46,7 @@ object ResponseGenerator {
     val allPaymentHistory = records.flatMap(_._2).toSet
     val allRefunds = records.flatMap(_._3).toSet
 
-    val balanceDetails = generateBalanceDetails(allCharges, allPaymentHistory)
+    val balanceDetails = generateBalanceDetails(allCharges, allPaymentHistory, allRefunds)
 
     HipResponse(
       balanceDetails,
@@ -151,17 +151,19 @@ object ResponseGenerator {
       )
       .max
     val requestDate = processedDate.minusDays(60)
-    val interest = (ChronoUnit.DAYS.between(requestDate, processedDate) / 7).toDouble * 1.001
     if (remainingBalance > 0) {
+      val biasedList = (85 to 99 by 1).map(_ / 100.toDouble).toList ++ List(1.0,1.0,1.0,1.0,1.0)
+      val randomRefundAmount: Double = remainingBalance * random.shuffle(biasedList).head
+      val interest = (ChronoUnit.DAYS.between(requestDate, processedDate) / 28).toDouble * 1.0001 * randomRefundAmount
       Set(
         RefundDetails(
           refundDate = processedDate,
           refundMethod = Some(randomPaymentMethod),
           refundRequestDate = Some(requestDate),
-          refundRequestAmount = remainingBalance,
+          refundRequestAmount = randomRefundAmount,
           refundDescription = Some(generatePaymentReference()),
           interestAddedToRefund = Some(interest),
-          totalRefundAmount = remainingBalance + interest,
+          totalRefundAmount = randomRefundAmount + interest,
           refundStatus =
             if processedDate.isAfter(LocalDate.now()) then Some("pending") else Some("accepted")
         )
@@ -171,34 +173,36 @@ object ResponseGenerator {
   }
   def generateBalanceDetails(
       charges: Set[ChargeDetails],
-      payments: Set[PaymentHistoryDetails]
+      payments: Set[PaymentHistoryDetails],
+      refunds: Set[RefundDetails]
   ): BalanceDetails = {
     val today = LocalDate.now()
     val allOverDueCharges = charges.filter(_.dueDate.isBefore(today))
     val overDueChargesWithAnOutstandingAmount = allOverDueCharges.filter(_.outstandingAmount > 0)
     val getCodedOut = overDueChargesWithAnOutstandingAmount.headOption.map{overdueCharge=> Set(CodedOutDetail(totalAmount = overdueCharge.outstandingAmount, effectiveStartDate = overdueCharge.dueDate, effectiveEndDate = overdueCharge.dueDate.plusYears(1).withMonth(4).withDayOfMonth(5)))}
-    val totalOverDueBalance = allOverDueCharges.map(_.outstandingAmount).sum - getCodedOut.map(_.map(_.totalAmount).sum).getOrElse(0.00)
+    val totalOverDueBalance = overDueChargesWithAnOutstandingAmount.map(_.outstandingAmount).sum - getCodedOut.map(_.map(_.totalAmount).sum).getOrElse(0.00)
     val allPayableCharges = charges.filter(_.dueDate.isAfter(today.plusDays(29)))
     val totalPayableBalance = allPayableCharges.map(_.outstandingAmount).sum
     val allPendingCharges = charges.filter(_.dueDate.isAfter(today.plusDays(30)))
     val totalPendingBalance = allPendingCharges.map(_.outstandingAmount).sum
+    val totalBalance = roundValue(totalOverDueBalance + totalPayableBalance + totalPendingBalance)
     val totalCredit =
-      if totalPayableBalance + totalPendingBalance > 0 then 0.0
-      else payments.filter(_.paymentDate.isAfter(today.minusDays(20))).map(_.paymentAmount).sum
+      if totalBalance> 0 then 0.0
+      else payments.map(_.paymentAmount).sum - charges.map(_.chargeAmount).sum - refunds.map(_.refundRequestAmount).sum
     BalanceDetails(
       totalOverdueBalance = roundValue(totalOverDueBalance),
       totalPayableBalance = roundValue(totalPayableBalance),
       earliestPayableDueDate = getTheEarliestDueDate(allPayableCharges),
       totalPendingBalance = roundValue(totalPendingBalance),
       earliestPendingDueDate = getTheEarliestDueDate(allPendingCharges),
-      totalBalance = roundValue(totalOverDueBalance + totalPayableBalance + totalPendingBalance),
+      totalBalance =totalBalance ,
       totalCreditAvailable = totalCredit,
       codedOutDetail = getCodedOut
     )
   }
 
   private def getTheEarliestDueDate(charges: Set[ChargeDetails]): Option[LocalDate] = {
-    if charges.nonEmpty then Some(charges.map(_.dueDate).min) else None
+    if charges.nonEmpty & charges.map(_.outstandingAmount).sum > 0 then Some(charges.map(_.dueDate).min) else None
   }
 
   private def roundValue(num: Double): Double = {
