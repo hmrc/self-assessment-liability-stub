@@ -70,8 +70,7 @@ object ResponseGenerator {
   }
 
   private def biasedRandomMultiplication(value: Double): Double = {
-    val biasedList: List[Double] =
-      List(0.95, 0.96, 0.97, 0.98, 0.99, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.01, 1.02, 1.03, 1.04, 1.05)
+    val biasedList: List[Double] = (90 to 105 by  1).map(_ / 100.toDouble).toList ++ List(1,1,1,1,1)
     value * random.shuffle(biasedList).head
   }
 
@@ -176,7 +175,9 @@ object ResponseGenerator {
   ): BalanceDetails = {
     val today = LocalDate.now()
     val allOverDueCharges = charges.filter(_.dueDate.isBefore(today))
-    val totalOverDueBalance = allOverDueCharges.map(_.outstandingAmount).sum
+    val overDueChargesWithAnOutstandingAmount = allOverDueCharges.filter(_.outstandingAmount > 0)
+    val getCodedOut = overDueChargesWithAnOutstandingAmount.headOption.map{overdueCharge=> Set(CodedOutDetail(totalAmount = overdueCharge.outstandingAmount, effectiveStartDate = overdueCharge.dueDate, effectiveEndDate = overdueCharge.dueDate.plusYears(1).withMonth(4).withDayOfMonth(5)))}
+    val totalOverDueBalance = allOverDueCharges.map(_.outstandingAmount).sum - getCodedOut.map(_.map(_.totalAmount).sum).getOrElse(0.00)
     val allPayableCharges = charges.filter(_.dueDate.isAfter(today.plusDays(29)))
     val totalPayableBalance = allPayableCharges.map(_.outstandingAmount).sum
     val allPendingCharges = charges.filter(_.dueDate.isAfter(today.plusDays(30)))
@@ -191,7 +192,8 @@ object ResponseGenerator {
       totalPendingBalance = roundValue(totalPendingBalance),
       earliestPendingDueDate = getTheEarliestDueDate(allPendingCharges),
       totalBalance = roundValue(totalOverDueBalance + totalPayableBalance + totalPendingBalance),
-      totalCreditAvailable = totalCredit
+      totalCreditAvailable = totalCredit,
+      codedOutDetail = getCodedOut
     )
   }
 

@@ -80,7 +80,7 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
             Future.successful(
               BadRequest(
                 Json.obj(
-                  "message" -> "Submission has not passed validation. Invalid Correlation Id."
+                  "message" -> "Invalid date inputted. The date needs to follow YYYY-MM-DD format"
                 )
               )
             )
