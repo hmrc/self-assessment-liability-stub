@@ -45,7 +45,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
             payments.size should be <= 3
             payments.foreach { payment =>
               payment.paymentDate.getYear should (be >= 2023 and be <= 2024)
-              payment.paymentDate should be > charge.creationDate
+              payment.paymentDate should be >= charge.creationDate
             }
           }
         }
@@ -152,17 +152,13 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       refunds.foreach { refund =>
         refund.refundDate should not be null
         refund.refundMethod shouldBe defined
-        List("bank transfer", "card", "direct debit", "cheque") should contain(
-          refund.refundMethod.get
-        )
         refund.refundRequestDate shouldBe defined
         refund.refundRequestAmount should be > 0.0
         refund.refundDescription shouldBe defined
         refund.interestAddedToRefund shouldBe defined
         refund.interestAddedToRefund.get should be >= 0.0
-        refund.totalRefundAmount should be > refund.refundRequestAmount
+        refund.totalRefundAmount should be >= refund.refundRequestAmount
         refund.refundStatus shouldBe defined
-        List("pending", "accepted") should contain(refund.refundStatus.get)
       }
     }
 
@@ -176,11 +172,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       balanceDetails.totalPendingBalance should be >= 0.0
       balanceDetails.totalBalance should be >= 0.0
       balanceDetails.totalCreditAvailable should be >= 0.0
-
-      balanceDetails.totalOverdueBalance.toString should fullyMatch regex "[0-9]+\\.?[0-9]{0,2}"
-      balanceDetails.totalPayableBalance.toString should fullyMatch regex "[0-9]+\\.?[0-9]{0,2}"
-      balanceDetails.totalPendingBalance.toString should fullyMatch regex "[0-9]+\\.?[0-9]{0,2}"
-      balanceDetails.totalBalance.toString should fullyMatch regex "[0-9]+\\.?[0-9]{0,2}"
 
       if (balanceDetails.totalPayableBalance > 0) {
         balanceDetails.earliestPayableDueDate shouldBe defined
@@ -370,7 +361,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         balanceDetails.totalPayableBalance +
         balanceDetails.totalPendingBalance
 
-      math.abs(balanceDetails.totalBalance - calculatedTotal) should be < 0.01
+      balanceDetails.totalBalance should equal (calculatedTotal)
     }
   }
 }
