@@ -38,7 +38,6 @@ object ResponseGenerator {
         .toSet
       val charges = generateCharge(chooseRandomStatementDate, payments)
       val refunds = calculateRefunds(payments, charges)
-
       (charges, payments, refunds)
     }
 
@@ -71,7 +70,7 @@ object ResponseGenerator {
 
   private def biasedRandomMultiplication(value: Double): Double = {
     val biasedList: List[Double] = (90 to 105 by  1).map(_ / 100.toDouble).toList ++ List(1,1,1,1,1)
-    value * random.shuffle(biasedList).head
+    roundValue(value * random.shuffle(biasedList).head)
   }
 
   def generateCharge(
@@ -87,8 +86,9 @@ object ResponseGenerator {
       val chargeAmount: Double = biasedRandomMultiplication(paymentItem.paymentAmount)
       val amendmentAmount =
         if chargeAmount < paymentItem.paymentAmount then chargeAmount else paymentItem.paymentAmount
-      val outstandingAmount = chargeAmount - amendmentAmount
+      val outstandingAmount = if isNotRecentStatement then chargeAmount - amendmentAmount else chargeAmount
       val interest = calculateInterestDue(dueDate, outstandingAmount)
+      val isInterestAccrued = if chargeAmount > amendmentAmount & dueDate.isBefore(LocalDate.now()) then true else false
       ChargeDetails(
         chargeId = paymentItem.allocationReference.map(_.head).getOrElse(generateChargeId()),
         creationDate = statementDate,
@@ -103,11 +103,11 @@ object ResponseGenerator {
         outstandingAmount =
           outstandingAmount + interest.getOrElse(0.0),
         outstandingInterestDue =
-          if outstandingAmount > 0 then interest else None,
+          if isInterestAccrued then interest else None,
         accruingInterest =
-          if outstandingAmount > 0 then interest else None,
-        accruingInterestPeriod = interest.map(_=>AccruingInterestPeriod(dueDate.plusMonths(1), LocalDate.now())),
-        accruingInterestRate = if outstandingAmount > 0 then Some(0.05) else None
+          if isInterestAccrued then interest else None,
+        accruingInterestPeriod = if isInterestAccrued then interest.map(_=>AccruingInterestPeriod(dueDate.plusMonths(1), LocalDate.now())) else None,
+        accruingInterestRate = if isInterestAccrued then Some(0.05) else None
       )
     }
   }
@@ -116,7 +116,7 @@ object ResponseGenerator {
       dueDate: LocalDate,
       outstandingAmount: Double
   ): Option[Double] = {
-    Some(outstandingAmount * (ChronoUnit.MONTHS.between(dueDate, LocalDate.now()) / 12) * 0.05)
+    Some(roundValue(outstandingAmount * (ChronoUnit.MONTHS.between(dueDate.plusMonths(1), LocalDate.now()) / 12) * 0.05))
   }
 
   def generateAmendment(
@@ -179,14 +179,14 @@ object ResponseGenerator {
     val overDueChargesWithAnOutstandingAmount = allOverDueCharges.filter(_.outstandingAmount > 0)
     val getCodedOut = overDueChargesWithAnOutstandingAmount.headOption.map{overdueCharge=> Set(CodedOutDetail(totalAmount = overdueCharge.outstandingAmount, effectiveStartDate = overdueCharge.dueDate, effectiveEndDate = overdueCharge.dueDate.plusYears(1).withMonth(4).withDayOfMonth(5)))}
     val totalOverDueBalance = overDueChargesWithAnOutstandingAmount.map(_.outstandingAmount).sum - getCodedOut.map(_.map(_.totalAmount).sum).getOrElse(0.00)
-    val allPayableCharges = charges.filter(_.dueDate.isAfter(today.plusDays(29)))
+    val allPayableCharges = charges.filter{charge=>
+      charge.dueDate.isBefore(today.plusDays(30)) & charge.dueDate.isAfter(today)
+    }
     val totalPayableBalance = allPayableCharges.map(_.outstandingAmount).sum
     val allPendingCharges = charges.filter(_.dueDate.isAfter(today.plusDays(30)))
     val totalPendingBalance = allPendingCharges.map(_.outstandingAmount).sum
     val totalBalance = roundValue(totalOverDueBalance + totalPayableBalance + totalPendingBalance)
-    val totalCredit =
-      if totalBalance> 0 then 0.0
-      else payments.map(_.paymentAmount).sum - charges.map(_.chargeAmount).sum - refunds.map(_.refundRequestAmount).sum
+    val totalCredit = calculateCredit(totalBalance, payments.map(_.paymentAmount).sum,charges.map(_.chargeAmount).sum,refunds.map(_.refundRequestAmount).sum)
     BalanceDetails(
       totalOverdueBalance = roundValue(totalOverDueBalance),
       totalPayableBalance = roundValue(totalPayableBalance),
@@ -197,6 +197,9 @@ object ResponseGenerator {
       totalCreditAvailable = totalCredit,
       codedOutDetail = getCodedOut
     )
+  }
+  private def calculateCredit(totalBalance: Double, totalPaymentAmount: Double, totalChargeAmount: Double, totalRefundMade: Double): Double ={
+    if totalBalance > 0 | totalChargeAmount > totalPaymentAmount then 0.00 else totalPaymentAmount - totalChargeAmount - totalRefundMade
   }
 
   private def getTheEarliestDueDate(charges: Set[ChargeDetails]): Option[LocalDate] = {

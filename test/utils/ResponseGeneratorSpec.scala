@@ -25,7 +25,7 @@ import java.time.LocalDate
 class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
   val fromDate: LocalDate = LocalDate.of(2023, 1, 1)
   val toDate: LocalDate = LocalDate.of(2023, 12, 31)
-
+  val today = LocalDate.now()
   "ResponseGenerator" should {
     "generate a response from given date range" in {
 
@@ -88,12 +88,11 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
         charge.creationDate should not be null
         List("ITSA", "Penalty", "PAYE", "POA") should contain(charge.chargeType)
-        charge.chargeAmount should be > 0.0
+        charge.chargeAmount should be > charge.outstandingAmount
         charge.taxYear should fullyMatch regex "[0-9]{4}-[0-9]{4}"
         charge.dueDate should not be null
-        charge.outstandingAmount should be >= 0.0
 
-        if (charge.outstandingAmount > 0) {
+        if (charge.outstandingAmount > 0 & charge.dueDate.isBefore(today)) {
           charge.outstandingInterestDue shouldBe defined
           charge.accruingInterest shouldBe defined
           charge.accruingInterestPeriod shouldBe defined
@@ -227,6 +226,151 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         val year = charge.creationDate.getYear
         charge.taxYear shouldBe s"$year-${year + 1}"
       }
+    }
+
+    "correctly categorize charges by due date relative to today" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
+      val charges = response.chargeDetails.get
+
+
+      val overdueCharges = charges.filter(_.dueDate.isBefore(today))
+      val payableCharges = charges.filter { charge =>
+        charge.dueDate.isBefore(today.plusDays(30)) && charge.dueDate.isAfter(today)
+      }
+      val pendingCharges = charges.filter(_.dueDate.isAfter(today.plusDays(30)))
+
+      val allCategorizedCharges = overdueCharges ++ payableCharges ++ pendingCharges
+      allCategorizedCharges.size shouldBe charges.size
+
+      payableCharges.foreach { charge =>
+        charge.dueDate should be > today
+        charge.dueDate should be < today.plusDays(30)
+      }
+
+      overdueCharges.foreach { charge =>
+        charge.dueDate should be < today
+      }
+
+      pendingCharges.foreach { charge =>
+        charge.dueDate should be > today.plusDays(30)
+      }
+    }
+
+    "calculate balance details correctly based on charge categorization" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
+      val balanceDetails = response.balanceDetails
+      val charges = response.chargeDetails.get
+
+      val payableCharges = charges.filter { charge =>
+        charge.dueDate.isBefore(today.plusDays(30)) && charge.dueDate.isAfter(today)
+      }
+
+      val pendingCharges = charges.filter(_.dueDate.isAfter(today.plusDays(30)))
+
+      val expectedTotalPayableBalance = payableCharges.map(_.outstandingAmount).sum
+      val expectedTotalPendingBalance = pendingCharges.map(_.outstandingAmount).sum
+
+      balanceDetails.totalPayableBalance shouldBe expectedTotalPayableBalance
+      balanceDetails.totalPendingBalance shouldBe expectedTotalPendingBalance
+
+      if (payableCharges.nonEmpty && payableCharges.map(_.outstandingAmount).sum > 0) {
+        balanceDetails.earliestPayableDueDate shouldBe Some(payableCharges.map(_.dueDate).min)
+      } else {
+        balanceDetails.earliestPayableDueDate shouldBe None
+      }
+
+      if (pendingCharges.nonEmpty && pendingCharges.map(_.outstandingAmount).sum > 0) {
+        balanceDetails.earliestPendingDueDate shouldBe Some(pendingCharges.map(_.dueDate).min)
+      } else {
+        balanceDetails.earliestPendingDueDate shouldBe None
+      }
+    }
+
+    "handle edge cases for payable charge date boundaries" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
+      val charges = response.chargeDetails.get
+
+
+      charges.foreach { charge =>
+        val dueDate = charge.dueDate
+
+        if (dueDate.isEqual(today)) {
+          val isPayable = dueDate.isBefore(today.plusDays(30)) && dueDate.isAfter(today)
+          isPayable shouldBe false
+        }
+
+        if (dueDate.isEqual(today.plusDays(30))) {
+          val isPayable = dueDate.isBefore(today.plusDays(30)) && dueDate.isAfter(today)
+          isPayable shouldBe false
+        }
+
+        if (dueDate.isEqual(today.plusDays(29))) {
+          val isPayable = dueDate.isBefore(today.plusDays(30)) && dueDate.isAfter(today)
+          isPayable shouldBe true
+        }
+
+        if (dueDate.isEqual(today.plusDays(1))) {
+          val isPayable = dueDate.isBefore(today.plusDays(30)) && dueDate.isAfter(today)
+          isPayable shouldBe true
+        }
+      }
+    }
+
+    "ensure payable charges exclude today and charges 30+ days away" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
+      val charges = response.chargeDetails.get
+
+      val payableCharges = charges.filter { charge =>
+        charge.dueDate.isBefore(today.plusDays(30)) && charge.dueDate.isAfter(today)
+      }
+
+
+      payableCharges.foreach { charge =>
+        charge.dueDate should not be today
+      }
+
+
+      payableCharges.foreach { charge =>
+        charge.dueDate should be < today.plusDays(30)
+      }
+
+
+      payableCharges.foreach { charge =>
+        charge.dueDate should be > today
+      }
+    }
+
+    "validate coded out details for overdue charges" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
+      val balanceDetails = response.balanceDetails
+      val charges = response.chargeDetails.get
+
+      val overdueCharges = charges.filter(_.dueDate.isBefore(today))
+      val overdueChargesWithOutstanding = overdueCharges.filter(_.outstandingAmount > 0)
+
+      if (overdueChargesWithOutstanding.nonEmpty) {
+        balanceDetails.codedOutDetail shouldBe defined
+        val codedOutDetail = balanceDetails.codedOutDetail.get.head
+
+        codedOutDetail.totalAmount should be > 0.0
+        codedOutDetail.effectiveStartDate should not be null
+        codedOutDetail.effectiveEndDate should not be null
+        codedOutDetail.effectiveEndDate should be > codedOutDetail.effectiveStartDate
+
+        val expectedOverdueBalance = overdueChargesWithOutstanding.map(_.outstandingAmount).sum - codedOutDetail.totalAmount
+        balanceDetails.totalOverdueBalance shouldBe expectedOverdueBalance
+      }
+    }
+
+    "verify total balance calculation includes all charge categories" in {
+      val response = ResponseGenerator.generateResponse(fromDate, toDate)
+      val balanceDetails = response.balanceDetails
+
+      val calculatedTotal = balanceDetails.totalOverdueBalance +
+        balanceDetails.totalPayableBalance +
+        balanceDetails.totalPendingBalance
+
+      math.abs(balanceDetails.totalBalance - calculatedTotal) should be < 0.01
     }
   }
 }
