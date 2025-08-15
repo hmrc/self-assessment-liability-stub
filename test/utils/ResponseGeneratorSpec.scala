@@ -82,10 +82,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       charges.foreach { charge =>
 
         charge.chargeId should not be empty
-        charge.chargeId should have length 9
-        charge.chargeId.take(2) should fullyMatch regex "[A-Z]{2}"
-        charge.chargeId.drop(2) should fullyMatch regex "[0-9]{7}"
-
         charge.creationDate should not be null
         List("ITSA", "Penalty", "PAYE", "POA") should contain(charge.chargeType)
         charge.chargeAmount should be > charge.outstandingAmount
@@ -131,7 +127,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       payments.foreach { payment =>
         payment.paymentAmount should (be >= 500.00 and be <= 50000.00)
         payment.paymentReference should not be empty
-        payment.paymentReference should fullyMatch regex "[0-9]+"
         payment.paymentMethod shouldBe defined
         List("bank transfer", "card", "direct debit", "cheque") should contain(
           payment.paymentMethod.get
@@ -139,8 +134,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         payment.paymentDate should not be null
         payment.processedDate shouldBe defined
         payment.allocationReference shouldBe defined
-        payment.allocationReference.get should have size 1
-        payment.allocationReference.get.head should have length 9
       }
     }
 
@@ -223,7 +216,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
       val charges = response.chargeDetails.get
 
-
       val overdueCharges = charges.filter(_.dueDate.isBefore(today))
       val payableCharges = charges.filter { charge =>
         charge.dueDate.isBefore(today.plusDays(30)) && charge.dueDate.isAfter(today)
@@ -281,7 +273,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
       val charges = response.chargeDetails.get
 
-
       charges.foreach { charge =>
         val dueDate = charge.dueDate
 
@@ -315,16 +306,13 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         charge.dueDate.isBefore(today.plusDays(30)) && charge.dueDate.isAfter(today)
       }
 
-
       payableCharges.foreach { charge =>
         charge.dueDate should not be today
       }
 
-
       payableCharges.foreach { charge =>
         charge.dueDate should be < today.plusDays(30)
       }
-
 
       payableCharges.foreach { charge =>
         charge.dueDate should be > today
@@ -348,7 +336,8 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         codedOutDetail.effectiveEndDate should not be null
         codedOutDetail.effectiveEndDate should be > codedOutDetail.effectiveStartDate
 
-        val expectedOverdueBalance = overdueChargesWithOutstanding.map(_.outstandingAmount).sum - codedOutDetail.totalAmount
+        val expectedOverdueBalance =
+          overdueChargesWithOutstanding.map(_.outstandingAmount).sum - codedOutDetail.totalAmount
         balanceDetails.totalOverdueBalance shouldBe expectedOverdueBalance
       }
     }
@@ -361,7 +350,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         balanceDetails.totalPayableBalance +
         balanceDetails.totalPendingBalance
 
-      balanceDetails.totalBalance should equal (calculatedTotal)
+      balanceDetails.totalBalance should equal(calculatedTotal)
     }
   }
 }
