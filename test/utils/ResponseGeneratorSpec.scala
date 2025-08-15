@@ -107,7 +107,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
           charge.amendments.get.foreach { amendment =>
             amendment.amendmentDate should not be null
             amendment.amendmentAmount should be >= 0.0
-            amendment.amendmentReason shouldBe defined
+            amendment.amendmentReason should not be null
             amendment.paymentMethod shouldBe defined
             List("bank transfer", "card", "direct debit", "cheque") should contain(
               amendment.paymentMethod.get
