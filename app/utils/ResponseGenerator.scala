@@ -69,10 +69,10 @@ object ResponseGenerator extends Logging {
   }
 
   private def allocateCreditToFutureCharges(
-                                             charges: Set[ChargeDetails],
-                                             payments: Set[PaymentHistoryDetails],
-                                             refunds: Set[RefundDetails]
-                                           ): (Set[ChargeDetails], BigDecimal) = {
+      charges: Set[ChargeDetails],
+      payments: Set[PaymentHistoryDetails],
+      refunds: Set[RefundDetails]
+  ): (Set[ChargeDetails], BigDecimal) = {
 
     val totalCreditAvailable: BigDecimal = roundValue(
       payments.map(_.paymentAmount).sum -
@@ -147,9 +147,9 @@ object ResponseGenerator extends Logging {
   }
 
   def generateCharge(
-                      statementDate: LocalDate,
-                      payments: Set[PaymentHistoryDetails]
-                    ): Set[ChargeDetails] = {
+      statementDate: LocalDate,
+      payments: Set[PaymentHistoryDetails]
+  ): Set[ChargeDetails] = {
     val isNotRecentStatement: Boolean = statementDate.isBefore(today.minusDays(45))
     val dueDate: LocalDate = statementDate.plusMonths(2)
     val taxYear = s"${statementDate.getYear}-${statementDate.getYear + 1}"
@@ -188,21 +188,23 @@ object ResponseGenerator extends Logging {
   }
 
   private def calculateInterestDue(
-                                    dueDate: LocalDate,
-                                    outstandingAmount: BigDecimal
-                                  ): Option[BigDecimal] = {
+      dueDate: LocalDate,
+      outstandingAmount: BigDecimal
+  ): Option[BigDecimal] = {
     Some(
       roundValue(
-        outstandingAmount * (BigDecimal(ChronoUnit.MONTHS.between(dueDate.plusMonths(1), today)) / BigDecimal(12)) * BigDecimal("0.05")
+        outstandingAmount * (BigDecimal(
+          ChronoUnit.MONTHS.between(dueDate.plusMonths(1), today)
+        ) / BigDecimal(12)) * BigDecimal("0.05")
       )
     )
   }
 
   def generateAmendment(
-                         amendmentDate: LocalDate,
-                         amount: BigDecimal,
-                         payment: PaymentHistoryDetails
-                       ): Set[Amendments] = {
+      amendmentDate: LocalDate,
+      amount: BigDecimal,
+      payment: PaymentHistoryDetails
+  ): Set[Amendments] = {
     Set(
       Amendments(
         amendmentDate = amendmentDate,
@@ -215,9 +217,9 @@ object ResponseGenerator extends Logging {
   }
 
   private def calculateRefunds(
-                                payments: Set[PaymentHistoryDetails],
-                                charges: Set[ChargeDetails]
-                              ): Set[RefundDetails] = {
+      payments: Set[PaymentHistoryDetails],
+      charges: Set[ChargeDetails]
+  ): Set[RefundDetails] = {
     val randomDayOfRefund = random.nextInt(45)
     val remainingBalance = payments.map(_.paymentAmount).sum - charges.map(_.chargeAmount).sum
     val requestDate = payments
@@ -232,8 +234,9 @@ object ResponseGenerator extends Logging {
       val randomRefundAmount: BigDecimal = roundValue(
         remainingBalance * random.shuffle(biasedList).head
       )
-      val interest = (BigDecimal(ChronoUnit.DAYS.between(requestDate, processedDate)) / BigDecimal(28)) *
-        BigDecimal("0.001") * randomRefundAmount
+      val interest =
+        (BigDecimal(ChronoUnit.DAYS.between(requestDate, processedDate)) / BigDecimal(28)) *
+          BigDecimal("0.001") * randomRefundAmount
       val getOverpaymentDates = findOverpaymentDates(payments, charges)
       Set(
         RefundDetails(
@@ -253,9 +256,9 @@ object ResponseGenerator extends Logging {
   }
 
   private def findOverpaymentDates(
-                                    payments: Set[PaymentHistoryDetails],
-                                    charges: Set[ChargeDetails]
-                                  ): Set[LocalDate] = {
+      payments: Set[PaymentHistoryDetails],
+      charges: Set[ChargeDetails]
+  ): Set[LocalDate] = {
     val chargeMap = charges.map(charge => charge.chargeId -> charge.chargeAmount).toMap
 
     payments.flatMap { payment =>
@@ -270,12 +273,13 @@ object ResponseGenerator extends Logging {
   }
 
   def generateBalanceDetails(
-                              charges: Set[ChargeDetails],
-                              payments: Set[PaymentHistoryDetails],
-                              creditLeft: BigDecimal
-                            ): BalanceDetails = {
+      charges: Set[ChargeDetails],
+      payments: Set[PaymentHistoryDetails],
+      creditLeft: BigDecimal
+  ): BalanceDetails = {
     val allOverDueCharges = charges.filter(_.dueDate.isBefore(today))
-    val overDueChargesWithAnOutstandingAmount = allOverDueCharges.filter(_.outstandingAmount > BigDecimal(0))
+    val overDueChargesWithAnOutstandingAmount =
+      allOverDueCharges.filter(_.outstandingAmount > BigDecimal(0))
     val getCodedOut = overDueChargesWithAnOutstandingAmount.headOption.map { overdueCharge =>
       Set(
         CodedOutDetail(

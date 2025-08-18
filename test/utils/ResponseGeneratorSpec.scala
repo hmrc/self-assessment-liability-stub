@@ -25,7 +25,7 @@ import java.time.LocalDate
 class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
   val fromDate: LocalDate = LocalDate.of(2023, 1, 1)
   val toDate: LocalDate = LocalDate.of(2023, 12, 31)
-  val today = LocalDate.now()
+  val today: LocalDate = LocalDate.now()
   "ResponseGenerator" should {
     "generate a response from given date range" in {
 
@@ -106,7 +106,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
           charge.amendments.get should not be empty
           charge.amendments.get.foreach { amendment =>
             amendment.amendmentDate should not be null
-            amendment.amendmentAmount should be >= 0.0
+            amendment.amendmentAmount should be >= BigDecimal(0.0)
             amendment.amendmentReason should not be null
             amendment.paymentMethod shouldBe defined
             List("bank transfer", "card", "direct debit", "cheque") should contain(
@@ -125,7 +125,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
       payments should not be empty
       payments.foreach { payment =>
-        payment.paymentAmount should (be >= 500.00 and be <= 50000.00)
+        payment.paymentAmount should (be >= BigDecimal(500.00) and be <= BigDecimal(50000.00))
         payment.paymentReference should not be empty
         payment.paymentMethod shouldBe defined
         List("bank transfer", "card", "direct debit", "cheque") should contain(
@@ -146,10 +146,10 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         refund.refundDate should not be null
         refund.refundMethod shouldBe defined
         refund.refundRequestDate shouldBe defined
-        refund.refundRequestAmount should be > 0.0
+        refund.refundRequestAmount should be > BigDecimal(0.0)
         refund.refundDescription shouldBe defined
         refund.interestAddedToRefund shouldBe defined
-        refund.interestAddedToRefund.get should be >= 0.0
+        refund.interestAddedToRefund.get should be >= BigDecimal(0.0)
         refund.totalRefundAmount should be >= refund.refundRequestAmount
         refund.refundStatus shouldBe defined
       }
@@ -160,11 +160,11 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
       val balanceDetails = response.balanceDetails
 
-      balanceDetails.totalOverdueBalance should be >= 0.0
-      balanceDetails.totalPayableBalance should be >= 0.0
-      balanceDetails.totalPendingBalance should be >= 0.0
-      balanceDetails.totalBalance should be >= 0.0
-      balanceDetails.totalCreditAvailable should be >= 0.0
+      balanceDetails.totalOverdueBalance should be >= BigDecimal(0.0)
+      balanceDetails.totalPayableBalance should be >= BigDecimal(0.0)
+      balanceDetails.totalPendingBalance should be >= BigDecimal(0.0)
+      balanceDetails.totalBalance should be >= BigDecimal(0.0)
+      balanceDetails.totalCreditAvailable should be >= BigDecimal(0.0)
 
       if (balanceDetails.totalPayableBalance > 0) {
         balanceDetails.earliestPayableDueDate shouldBe defined
@@ -331,7 +331,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         balanceDetails.codedOutDetail shouldBe defined
         val codedOutDetail = balanceDetails.codedOutDetail.get.head
 
-        codedOutDetail.totalAmount should be > 0.0
+        codedOutDetail.totalAmount should be > BigDecimal(0.0)
         codedOutDetail.effectiveStartDate should not be null
         codedOutDetail.effectiveEndDate should not be null
         codedOutDetail.effectiveEndDate should be > codedOutDetail.effectiveStartDate
