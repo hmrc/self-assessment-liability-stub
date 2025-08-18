@@ -24,10 +24,10 @@ case class RefundDetails(
     refundDate: LocalDate,
     refundMethod: Option[String],
     refundRequestDate: Option[LocalDate],
-    refundRequestAmount: Double,
+    refundRequestAmount: BigDecimal,
     refundDescription: Option[String],
-    interestAddedToRefund: Option[Double],
-    totalRefundAmount: Double,
+    interestAddedToRefund: Option[BigDecimal],
+    totalRefundAmount: BigDecimal,
     refundStatus: Option[String]
 )
 

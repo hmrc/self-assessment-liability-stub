@@ -21,7 +21,7 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDate
 
 case class PaymentHistoryDetails(
-    paymentAmount: Double,
+    paymentAmount: BigDecimal,
     paymentReference: String,
     paymentMethod: Option[String],
     paymentDate: LocalDate,

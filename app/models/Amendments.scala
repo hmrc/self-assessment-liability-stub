@@ -22,9 +22,9 @@ import java.time.LocalDate
 
 case class Amendments(
     amendmentDate: LocalDate,
-    amendmentAmount: Double,
+    amendmentAmount: BigDecimal,
     amendmentReason: String,
-    updatedChargeAmount: Option[Double] = None,
+    updatedChargeAmount: Option[BigDecimal] = None,
     paymentMethod: Option[String],
     paymentDate: Option[LocalDate]
 )

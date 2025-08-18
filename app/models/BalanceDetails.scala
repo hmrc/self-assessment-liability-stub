@@ -21,13 +21,13 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDate
 
 case class BalanceDetails(
-    totalOverdueBalance: Double,
-    totalPayableBalance: Double,
+    totalOverdueBalance: BigDecimal,
+    totalPayableBalance: BigDecimal,
     earliestPayableDueDate: Option[LocalDate],
-    totalPendingBalance: Double,
+    totalPendingBalance: BigDecimal,
     earliestPendingDueDate: Option[LocalDate],
-    totalBalance: Double,
-    totalCreditAvailable: Double,
+    totalBalance: BigDecimal,
+    totalCreditAvailable: BigDecimal,
     codedOutDetail: Option[Set[CodedOutDetail]] = None
 )
 

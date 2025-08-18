@@ -24,14 +24,14 @@ case class ChargeDetails(
     chargeId: String,
     creationDate: LocalDate,
     chargeType: String,
-    chargeAmount: Double,
-    outstandingAmount: Double,
+    chargeAmount: BigDecimal,
+    outstandingAmount: BigDecimal,
     taxYear: String,
     dueDate: LocalDate,
-    outstandingInterestDue: Option[Double],
-    accruingInterest: Option[Double],
+    outstandingInterestDue: Option[BigDecimal],
+    accruingInterest: Option[BigDecimal],
     accruingInterestPeriod: Option[AccruingInterestPeriod],
-    accruingInterestRate: Option[Double],
+    accruingInterestRate: Option[BigDecimal],
     amendments: Option[Set[Amendments]]
 )
 
