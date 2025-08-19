@@ -32,7 +32,7 @@ case class ChargeDetails(
     accruingInterest: Option[BigDecimal],
     accruingInterestPeriod: Option[AccruingInterestPeriod],
     accruingInterestRate: Option[BigDecimal],
-    amendments: Option[Set[Amendments]]
+    amendments: List[Amendment]
 )
 
 object ChargeDetails {

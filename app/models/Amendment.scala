@@ -20,7 +20,7 @@ import play.api.libs.json.{Json, OFormat}
 
 import java.time.LocalDate
 
-case class Amendments(
+case class Amendment(
     amendmentDate: LocalDate,
     amendmentAmount: BigDecimal,
     amendmentReason: String,
@@ -29,6 +29,6 @@ case class Amendments(
     paymentDate: Option[LocalDate]
 )
 
-object Amendments {
-  implicit val format: OFormat[Amendments] = Json.format[Amendments]
+object Amendment {
+  implicit val format: OFormat[Amendment] = Json.format[Amendment]
 }

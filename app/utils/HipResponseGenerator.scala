@@ -34,7 +34,8 @@ object HipResponseGenerator {
   private val paymentMethodGen: Gen[String] =
     Gen.oneOf("bank transfer", "card", "direct debit", "cheque")
   private val amountGen: Gen[BigDecimal] = Gen.choose(500, 50000).map(BigDecimal(_))
-  private val uuidGen: Gen[String] = Gen.delay(Gen.const(UUID.randomUUID().toString))
+  private val chargeRefGen: Gen[String] = Gen.listOfN(12, Gen.choose(0, 9)).map(_.mkString)
+
 
   private def dateInRange(start: LocalDate, end: LocalDate): Gen[LocalDate] = {
     val daysBetween = ChronoUnit.DAYS.between(start, end).toInt
@@ -54,14 +55,35 @@ object HipResponseGenerator {
     Gen.oneOf(biasedValues)
   }
 
+
+  private def yearDataGen(year: Int): Gen[(List[ChargeDetails], List[PaymentHistoryDetails])] = {
+    val now = LocalDate.now()
+    for {
+      statementMonth <- Gen.choose(1, 12)
+      recentStatementMonth <- Gen.choose(2, 6)
+      statementDay <- Gen.choose(1, 28)
+      numberOfStatements <- Gen.choose(1, 3)
+      statementDate =
+        if now.getYear.intValue == year then
+          LocalDate.of(
+            year,
+            now.minusMonths(recentStatementMonth).getMonthValue,
+            now.getDayOfMonth - statementDay
+          )
+        else LocalDate.of(year, statementMonth, statementDay)
+      payments <- Gen.listOfN(numberOfStatements, paymentHistoryGen(statementDate))
+      charges = payments.map(chargeDetailsGen(statementDate, _))  //list gen charge
+    } yield (chargeList, payments)
+  }
+
   private def paymentHistoryGen(statementDate: LocalDate): Gen[PaymentHistoryDetails] = {
     for {
       paymentDate <- dateInRange(statementDate, statementDate.plusDays(59))
       amount <- amountGen
       method <- paymentMethodGen
-      reference <- uuidGen
+      reference <- chargeRefGen
       processedDate <- Gen.option(dateInRange(paymentDate, paymentDate.plusDays(5)))
-      allocationRef <- uuidGen.map(id => Some(List(id)))
+      allocationRef <- chargeRefGen.map(List(_))
     } yield PaymentHistoryDetails(
       paymentAmount = roundValue(amount),
       paymentReference = reference,
@@ -76,10 +98,10 @@ object HipResponseGenerator {
       processDate: LocalDate,
       amount: BigDecimal,
       payment: PaymentHistoryDetails
-  ): Gen[Set[Amendments]] = {
+  ): Gen[Set[Amendment]] = {
     Gen.const(
       Set(
-        Amendments(
+        Amendment(
           amendmentDate = processDate,
           amendmentAmount = amount,
           amendmentReason = "payment",
@@ -96,8 +118,8 @@ object HipResponseGenerator {
       amendmentDate <- dateInRange(today.minusDays(20), today)
     } yield {
       val remainingBalance = charge.chargeAmount - amount
-      val amendments = Set(
-        Amendments(
+      val amendments = List(
+        Amendment(
           amendmentDate = amendmentDate,
           amendmentAmount = amount,
           amendmentReason = "Credit applied from overpayment",
@@ -106,7 +128,7 @@ object HipResponseGenerator {
           paymentDate = None
         )
       )
-      charge.copy(amendments = Some(amendments), outstandingAmount = remainingBalance)
+      charge.copy(amendments = amendments, outstandingAmount = remainingBalance)
     }
   }
 
@@ -131,10 +153,8 @@ object HipResponseGenerator {
     for {
       chargeType <- chargeTypeGen
       multiplier <- biasedMultiplierGen
-      chargeId <- payment.allocationReference
-        .map(_.headOption.getOrElse(""))
-        .map(Gen.const)
-        .getOrElse(uuidGen)
+      chargeReference <- chargeRefGen
+      chargeId = payment.allocationReference.headOption.getOrElse(chargeReference)
     } yield {
       val dueDate = statementDate.plusMonths(2)
       val taxYear = s"${statementDate.getYear}-${statementDate.getYear + 1}"
@@ -149,7 +169,7 @@ object HipResponseGenerator {
         if (isNotRecentStatement) chargeAmount - amendmentAmount else chargeAmount
       )
       val interest = calculateInterestDue(dueDate, outstandingAmount)
-      val isInterestAccrued = chargeAmount > amendmentAmount && dueDate.isBefore(today)
+      val hasInterest = chargeAmount > amendmentAmount && dueDate.isBefore(today)
 
       ChargeDetails(
         chargeId = chargeId,
@@ -159,9 +179,8 @@ object HipResponseGenerator {
         taxYear = taxYear,
         dueDate = dueDate,
         amendments = if (isNotRecentStatement) {
-          Some(
-            Set(
-              Amendments(
+            List(
+              Amendment(
                 amendmentDate = processDate,
                 amendmentAmount = amendmentAmount,
                 amendmentReason = "payment",
@@ -170,15 +189,14 @@ object HipResponseGenerator {
                 paymentDate = Some(payment.paymentDate)
               )
             )
-          )
-        } else None,
+        } else List.empty[Amendment],
         outstandingAmount = outstandingAmount + interest.getOrElse(BigDecimal(0)),
-        outstandingInterestDue = if (isInterestAccrued) interest else None,
-        accruingInterest = if (isInterestAccrued) interest else None,
-        accruingInterestPeriod = if (isInterestAccrued) {
+        outstandingInterestDue = if (hasInterest) interest else None,
+        accruingInterest = if (hasInterest) interest else None,
+        accruingInterestPeriod = if (hasInterest) {
           interest.map(_ => AccruingInterestPeriod(dueDate.plusMonths(1), today))
         } else None,
-        accruingInterestRate = if (isInterestAccrued) Some(BigDecimal("0.05")) else None
+        accruingInterestRate = if (hasInterest) Some(BigDecimal("0.05")) else None
       )
     }
   }
@@ -227,7 +245,7 @@ object HipResponseGenerator {
     }
   }
 
-  private def allocateCreditToFutureCharges(
+  private def allocateCreditToFutureOrOverdueCharges(
       charges: Set[ChargeDetails],
       payments: Set[PaymentHistoryDetails],
       refunds: Set[RefundDetails]
@@ -300,34 +318,15 @@ object HipResponseGenerator {
     }
   }
 
-  private def yearDataGen(year: Int): Gen[(Set[ChargeDetails], Set[PaymentHistoryDetails])] = {
-    val now = LocalDate.now()
-    for {
-      statementMonth <- Gen.choose(1, 12)
-      recentStatementMonth <- Gen.choose(2, 6)
-      statementDay <- Gen.choose(1, 28)
-      numberOfStatements <- Gen.choose(1, 3)
-      statementDate =
-        if now.getYear.intValue == year then
-          LocalDate.of(
-            year,
-            now.minusMonths(recentStatementMonth).getMonthValue,
-            now.getDayOfMonth - statementDay
-          )
-        else LocalDate.of(year, statementMonth, statementDay)
-      payments <- Gen.listOfN(numberOfStatements, paymentHistoryGen(statementDate))
-      charges <- Gen.sequence(payments.map(chargeDetailsGen(statementDate, _)))
-    } yield (charges.asScala.toSet, payments.toSet)
-  }
 
   def hipResponseGen(fromDate: LocalDate, toDate: LocalDate): Gen[HipResponse] = {
     for {
       yearDataList <- Gen.sequence((fromDate.getYear to toDate.getYear).map(yearDataGen))
       yearData = yearDataList.asScala.toList
-      allCharges = yearData.flatMap(_._1).toSet
+      allCharges = yearData.flatMap(_._1)
       allPaymentHistory = yearData.flatMap(_._2).toSet
       allRefunds <- refundDetailsGen(allPaymentHistory, allCharges)
-      chargesWithRefundAllocated <- allocateCreditToFutureCharges(
+      chargesWithRefundAllocated <- allocateCreditToFutureOrOverdueCharges(
         allCharges,
         allPaymentHistory,
         allRefunds
@@ -338,9 +337,9 @@ object HipResponseGenerator {
       )
     } yield HipResponse(
       balanceDetails = balanceDetails,
-      chargeDetails = Some(chargesWithRefundAllocated._1),
-      refundDetails = Some(allRefunds),
-      paymentHistoryDetails = Some(allPaymentHistory)
+      chargeDetails = chargesWithRefundAllocated._1,
+      refundDetails = allRefunds,
+      paymentHistoryDetails = allPaymentHistory
     )
   }
 
