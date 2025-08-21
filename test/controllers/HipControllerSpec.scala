@@ -16,35 +16,53 @@
 
 package controllers
 
-import models.HipResponse
-
-import java.time.LocalDate
+import controllers.HipControllerSpec.sampleHipResponse
+import models.*
+import org.mockito.Mockito.when
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{JsResultException, Json}
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
+import services.HipService
 import utils.constants.RequestResponseConstants.*
 
+import java.time.LocalDate
+
 class HipControllerSpec extends AnyWordSpec with Matchers {
+  private val mockService: HipService = mock[HipService]
   private val fakeRequest = FakeRequest("GET", "/")
-  private val controller = new HipController(Helpers.stubControllerComponents())
+  private val controller = new HipController(Helpers.stubControllerComponents(), mockService)
   private val validUtr: String = "1234567890"
   private val validFromDate: String = "2024-01-01"
   private val validToDate: String = LocalDate.now().toString
 
   "GET /" should {
     "return 200 with correctly formatted details for any valid UTR" in {
+      when(mockService.generateHipResponse(validFromDate, validToDate))
+        .thenReturn(sampleHipResponse)
       val result =
         controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(fakeRequest)
       status(result) shouldBe Status.OK
-      Json.fromJson[HipResponse](contentAsJson(result)).get
+      contentAsJson(result) shouldBe Json.toJson(sampleHipResponse)
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipInvalidCorrelationId, validFromDate, validToDate)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.BAD_REQUEST
+      contentAsJson(result) shouldBe Json.obj(
+        "message" -> "Submission has not passed validation. Invalid Correlation Id."
+      )
+    }
+
+    "return 400 BAD_REQUEST with correct error message for invalid dates" in {
+      val result =
+        controller.getSelfAssessmentData(badUtrHipInvalidCorrelationId, "2-20-2023", "2-20-2024")(
           fakeRequest
         )
       status(result) shouldBe Status.BAD_REQUEST
@@ -106,6 +124,17 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       contentAsJson(result) shouldBe Json.obj("message" -> "Internal server error.")
     }
 
+    "return 500 INTERNAL_SERVER_ERROR with correct error message if validation on the data returned from generator fails" in {
+      when(mockService.generateHipResponse(validFromDate, validToDate))
+        .thenThrow(JsResultException(Seq.empty))
+      val result =
+        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.INTERNAL_SERVER_ERROR
+      contentAsJson(result) shouldBe Json.obj("message" -> "Generated a bad response")
+    }
+
     "return 502 BAD_GATEWAY with correct error message for service communication errors" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipExternalServiceError, validFromDate, validToDate)(
@@ -126,4 +155,46 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       contentAsJson(result) shouldBe Json.obj("message" -> "Service unavailable")
     }
   }
+}
+object HipControllerSpec {
+
+  val sampleHipResponse: HipResponse = HipResponse(
+    balanceDetails = BalanceDetails(
+      totalOverdueBalance = BigDecimal("1000.00"),
+      totalPayableBalance = BigDecimal("500.00"),
+      earliestPayableDueDate = Some(LocalDate.of(2024, 2, 15)),
+      totalPendingBalance = BigDecimal("200.00"),
+      earliestPendingDueDate = Some(LocalDate.of(2024, 6, 15)),
+      totalBalance = BigDecimal("1700.00"),
+      totalCreditAvailable = BigDecimal("0.00"),
+      codedOutDetail = List.empty[CodedOutDetail]
+    ),
+    chargeDetails = List(
+      ChargeDetails(
+        chargeId = "charge-123",
+        creationDate = LocalDate.of(2023, 1, 15),
+        chargeType = "ITSA",
+        chargeAmount = BigDecimal("1000.00"),
+        taxYear = "2023-2024",
+        dueDate = LocalDate.of(2024, 1, 31),
+        amendments = List.empty,
+        outstandingAmount = BigDecimal("1000.00"),
+        outstandingInterestDue = None,
+        accruingInterest = None,
+        accruingInterestPeriod = None,
+        accruingInterestRate = None
+      )
+    ),
+    refundDetails = List.empty,
+    paymentHistoryDetails = List(
+      PaymentHistoryDetails(
+        paymentAmount = BigDecimal("500.00"),
+        paymentReference = "payment-123",
+        paymentMethod = Some("bank transfer"),
+        paymentDate = LocalDate.of(2023, 2, 15),
+        processedDate = Some(LocalDate.of(2023, 2, 16)),
+        allocationReference = List("charge-123")
+      )
+    )
+  )
 }

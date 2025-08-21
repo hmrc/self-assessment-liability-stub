@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package models
+package services
 
-import play.api.libs.json.{Json, OFormat}
+import models.HipResponse
+import utils.ResponseGenerator
 
-case class HipResponse(
-    balanceDetails: BalanceDetails,
-    chargeDetails: List[ChargeDetails],
-    refundDetails: List[RefundDetails],
-    paymentHistoryDetails: List[PaymentHistoryDetails]
-)
+import java.time.LocalDate
 
-object HipResponse {
-  implicit val format: OFormat[HipResponse] = Json.format[HipResponse]
+class HipService {
+
+  def generateHipResponse(fromDate: String, toDate: String): HipResponse = {
+    val datesInCorrectFormat = (LocalDate.parse(fromDate), LocalDate.parse(toDate))
+    ResponseGenerator.generateResponse(datesInCorrectFormat._1, datesInCorrectFormat._2)
+  }
 }

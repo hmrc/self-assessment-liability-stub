@@ -17,19 +17,19 @@
 package controllers
 
 import models.HipResponse
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsResultException, JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import services.HipService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.ResponseGenerator
 import utils.constants.RequestResponseConstants.*
 
-import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class HipController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
+class HipController @Inject() (cc: ControllerComponents, service: HipService)
+    extends BackendController(cc) {
   def getSelfAssessmentData(utr: String, dateFrom: String, dateTo: String): Action[AnyContent] =
     Action.async { implicit request =>
       if (utr.equalsIgnoreCase(badUtrHipInvalidCorrelationId)) {
@@ -70,9 +70,7 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
         )
       } else {
         try {
-          val fromDate = LocalDate.parse(dateFrom)
-          val toDate = LocalDate.parse(dateTo)
-          val hipResponse: HipResponse = ResponseGenerator.generateResponse(fromDate, toDate)
+          val hipResponse: HipResponse = service.generateHipResponse(dateFrom, dateTo)
           val json: JsValue = Json.toJson(hipResponse)
           Future.successful(Ok(json))
         } catch {
@@ -83,6 +81,10 @@ class HipController @Inject() (cc: ControllerComponents) extends BackendControll
                   "message" -> "Invalid date inputted. The date needs to follow YYYY-MM-DD format"
                 )
               )
+            )
+          case error: JsResultException =>
+            Future.successful(
+              InternalServerError(Json.obj("message" -> "Generated a bad response"))
             )
         }
 

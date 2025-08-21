@@ -26,7 +26,7 @@ case class PaymentHistoryDetails(
     paymentMethod: Option[String],
     paymentDate: LocalDate,
     processedDate: Option[LocalDate],
-    allocationReference: Option[List[String]]
+    allocationReference: List[String]
 )
 
 object PaymentHistoryDetails {

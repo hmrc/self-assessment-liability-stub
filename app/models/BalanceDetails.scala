@@ -28,7 +28,7 @@ case class BalanceDetails(
     earliestPendingDueDate: Option[LocalDate],
     totalBalance: BigDecimal,
     totalCreditAvailable: BigDecimal,
-    codedOutDetail: Option[Set[CodedOutDetail]] = None
+    codedOutDetail: List[CodedOutDetail]
 )
 
 object BalanceDetails {

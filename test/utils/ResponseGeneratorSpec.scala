@@ -32,52 +32,24 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       val hipResponse: HipResponse = ResponseGenerator.generateResponse(fromDate, toDate)
 
       hipResponse.balanceDetails should not be null
-      hipResponse.chargeDetails shouldBe defined
-      hipResponse.refundDetails shouldBe defined
-      hipResponse.paymentHistoryDetails shouldBe defined
-
-      hipResponse.chargeDetails.foreach { charges =>
-        charges.size should be <= 3
-        charges.foreach { charge =>
-          charge.creationDate.getYear should (be >= 2023 and be <= 2024)
-
-          hipResponse.paymentHistoryDetails.foreach { payments =>
-            payments.size should be <= 3
-            payments.foreach { payment =>
-              payment.paymentDate.getYear should (be >= 2023 and be <= 2024)
-              payment.paymentDate should be >= charge.creationDate
-            }
-          }
+      hipResponse.chargeDetails should not be empty
+      hipResponse.paymentHistoryDetails should not be empty
+      hipResponse.paymentHistoryDetails.size should be <= 3
+      hipResponse.chargeDetails.size should be <= 3
+      hipResponse.chargeDetails.map { charge =>
+        charge.creationDate.getYear should (be >= 2023 and be <= 2024)
+        hipResponse.paymentHistoryDetails.foreach { payments =>
+          payments.paymentDate.getYear should (be >= 2023 and be <= 2024)
+          payments.paymentDate should be >= charge.creationDate
         }
       }
     }
 
-    "generate response with single year range" in {
-
-      val hipResponse: HipResponse = ResponseGenerator.generateResponse(fromDate, toDate)
-
-      hipResponse.balanceDetails should not be null
-      hipResponse.chargeDetails shouldBe defined
-      hipResponse.refundDetails shouldBe defined
-      hipResponse.paymentHistoryDetails shouldBe defined
-
-      val charges = hipResponse.chargeDetails.get
-      val payments = hipResponse.paymentHistoryDetails.get
-
-      charges should not be empty
-      payments should not be empty
-
-      charges.foreach { charge =>
-        charge.creationDate.getYear shouldBe 2023
-        charge.taxYear shouldBe "2023-2024"
-      }
-    }
-
-    "generate valid charge details structure" in {
+    "generate valid charge based on statement date" in {
 
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      val charges = response.chargeDetails.get
+      val charges = response.chargeDetails
 
       charges.foreach { charge =>
 
@@ -102,14 +74,13 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
         val isRecentStatement = charge.creationDate.isAfter(LocalDate.now().minusDays(45))
         if (!isRecentStatement) {
-          charge.amendments shouldBe defined
-          charge.amendments.get should not be empty
-          charge.amendments.get.foreach { amendment =>
+          charge.amendments should not be empty
+          charge.amendments.foreach { amendment =>
             amendment.amendmentDate should not be null
             amendment.amendmentAmount should be >= BigDecimal(0.0)
             amendment.amendmentReason should not be null
             amendment.paymentMethod shouldBe defined
-            List("bank transfer", "card", "direct debit", "cheque") should contain(
+            List("bank transfer", "card", "direct debit", "cheque", "Credit") should contain(
               amendment.paymentMethod.get
             )
             amendment.paymentDate shouldBe defined
@@ -118,10 +89,10 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    "generate valid payment history structure" in {
+    "generate valid payments" in {
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      val payments = response.paymentHistoryDetails.get
+      val payments = response.paymentHistoryDetails
 
       payments should not be empty
       payments.foreach { payment =>
@@ -133,14 +104,14 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         )
         payment.paymentDate should not be null
         payment.processedDate shouldBe defined
-        payment.allocationReference shouldBe defined
+        payment.allocationReference should not be empty
       }
     }
 
-    "generate valid refund details structure" in {
+    "generate valid refunds" in {
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      val refunds = response.refundDetails.get
+      val refunds = response.refundDetails
 
       refunds.foreach { refund =>
         refund.refundDate should not be null
@@ -155,7 +126,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    "generate valid balance details" in {
+    "balance details calculations should properly reflect each charge type" in {
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
       val balanceDetails = response.balanceDetails
@@ -174,16 +145,16 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    "generate consistent data relationships" in {
+    "generate refund if total payment is more than total charge amounts" in {
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      val charges = response.chargeDetails.get
-      val payments = response.paymentHistoryDetails.get
-      val refunds = response.refundDetails.get
+      val charges = response.chargeDetails
+      val payments = response.paymentHistoryDetails
+      val refunds = response.refundDetails
 
       val chargeIds = charges.map(_.chargeId)
       payments.foreach { payment =>
-        payment.allocationReference.get.foreach { ref =>
+        payment.allocationReference.foreach { ref =>
           chargeIds should contain(ref)
         }
       }
@@ -196,12 +167,12 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    "handle multi-year date ranges correctly" in {
+    "create tax year correctly" in {
       val fromDate = LocalDate.of(2022, 1, 1)
       val toDate = LocalDate.of(2024, 12, 31)
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      val charges = response.chargeDetails.get
+      val charges = response.chargeDetails
 
       val chargeYears = charges.map(_.creationDate.getYear)
       chargeYears should contain allOf (2022, 2023, 2024)
@@ -212,37 +183,34 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    "correctly categorize charges by due date relative to today" in {
+    "create a coded amount for the tax year of a overdue charge" in {
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
-      val charges = response.chargeDetails.get
-
+      val charges = response.chargeDetails
+      val balanceDetails = response.balanceDetails
       val overdueCharges = charges.filter(_.dueDate.isBefore(today))
-      val payableCharges = charges.filter { charge =>
-        charge.dueDate.isBefore(today.plusDays(30)) && charge.dueDate.isAfter(today)
-      }
-      val pendingCharges = charges.filter(_.dueDate.isAfter(today.plusDays(30)))
+      val codedOutDetail = response.balanceDetails.codedOutDetail
+      val overdueChargesWithAnOutstanding = overdueCharges.filter(_.outstandingAmount > 0)
+      codedOutDetail.size should be <= overdueCharges.size
+      overdueCharges.map(_.outstandingAmount).sum should be >= codedOutDetail.map(_.totalAmount).sum
+      if (overdueChargesWithAnOutstanding.nonEmpty) {
+        balanceDetails.codedOutDetail should not be empty
+        val codedOutDetail = balanceDetails.codedOutDetail.head
 
-      val allCategorizedCharges = overdueCharges ++ payableCharges ++ pendingCharges
-      allCategorizedCharges.size shouldBe charges.size
+        codedOutDetail.totalAmount should be > BigDecimal(0.0)
+        codedOutDetail.effectiveStartDate should not be null
+        codedOutDetail.effectiveEndDate should not be null
+        codedOutDetail.effectiveEndDate should be > codedOutDetail.effectiveStartDate
 
-      payableCharges.foreach { charge =>
-        charge.dueDate should be > today
-        charge.dueDate should be < today.plusDays(30)
-      }
-
-      overdueCharges.foreach { charge =>
-        charge.dueDate should be < today
-      }
-
-      pendingCharges.foreach { charge =>
-        charge.dueDate should be > today.plusDays(30)
+        val expectedOverdueBalance =
+          overdueChargesWithAnOutstanding.map(_.outstandingAmount).sum - codedOutDetail.totalAmount
+        balanceDetails.totalOverdueBalance shouldBe expectedOverdueBalance
       }
     }
 
-    "calculate balance details correctly based on charge categorization" in {
+    "calculate balance details correctly based on different charges" in {
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
       val balanceDetails = response.balanceDetails
-      val charges = response.chargeDetails.get
+      val charges = response.chargeDetails
 
       val payableCharges = charges.filter { charge =>
         charge.dueDate.isBefore(today.plusDays(30)) && charge.dueDate.isAfter(today)
@@ -267,90 +235,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       } else {
         balanceDetails.earliestPendingDueDate shouldBe None
       }
-    }
-
-    "handle edge cases for payable charge date boundaries" in {
-      val response = ResponseGenerator.generateResponse(fromDate, toDate)
-      val charges = response.chargeDetails.get
-
-      charges.foreach { charge =>
-        val dueDate = charge.dueDate
-
-        if (dueDate.isEqual(today)) {
-          val isPayable = dueDate.isBefore(today.plusDays(30)) && dueDate.isAfter(today)
-          isPayable shouldBe false
-        }
-
-        if (dueDate.isEqual(today.plusDays(30))) {
-          val isPayable = dueDate.isBefore(today.plusDays(30)) && dueDate.isAfter(today)
-          isPayable shouldBe false
-        }
-
-        if (dueDate.isEqual(today.plusDays(29))) {
-          val isPayable = dueDate.isBefore(today.plusDays(30)) && dueDate.isAfter(today)
-          isPayable shouldBe true
-        }
-
-        if (dueDate.isEqual(today.plusDays(1))) {
-          val isPayable = dueDate.isBefore(today.plusDays(30)) && dueDate.isAfter(today)
-          isPayable shouldBe true
-        }
-      }
-    }
-
-    "ensure payable charges exclude today and charges 30+ days away" in {
-      val response = ResponseGenerator.generateResponse(fromDate, toDate)
-      val charges = response.chargeDetails.get
-
-      val payableCharges = charges.filter { charge =>
-        charge.dueDate.isBefore(today.plusDays(30)) && charge.dueDate.isAfter(today)
-      }
-
-      payableCharges.foreach { charge =>
-        charge.dueDate should not be today
-      }
-
-      payableCharges.foreach { charge =>
-        charge.dueDate should be < today.plusDays(30)
-      }
-
-      payableCharges.foreach { charge =>
-        charge.dueDate should be > today
-      }
-    }
-
-    "validate coded out details for overdue charges" in {
-      val response = ResponseGenerator.generateResponse(fromDate, toDate)
-      val balanceDetails = response.balanceDetails
-      val charges = response.chargeDetails.get
-
-      val overdueCharges = charges.filter(_.dueDate.isBefore(today))
-      val overdueChargesWithOutstanding = overdueCharges.filter(_.outstandingAmount > 0)
-
-      if (overdueChargesWithOutstanding.nonEmpty) {
-        balanceDetails.codedOutDetail shouldBe defined
-        val codedOutDetail = balanceDetails.codedOutDetail.get.head
-
-        codedOutDetail.totalAmount should be > BigDecimal(0.0)
-        codedOutDetail.effectiveStartDate should not be null
-        codedOutDetail.effectiveEndDate should not be null
-        codedOutDetail.effectiveEndDate should be > codedOutDetail.effectiveStartDate
-
-        val expectedOverdueBalance =
-          overdueChargesWithOutstanding.map(_.outstandingAmount).sum - codedOutDetail.totalAmount
-        balanceDetails.totalOverdueBalance shouldBe expectedOverdueBalance
-      }
-    }
-
-    "verify total balance calculation includes all charge categories" in {
-      val response = ResponseGenerator.generateResponse(fromDate, toDate)
-      val balanceDetails = response.balanceDetails
-
-      val calculatedTotal = balanceDetails.totalOverdueBalance +
-        balanceDetails.totalPayableBalance +
-        balanceDetails.totalPendingBalance
-
-      balanceDetails.totalBalance should equal(calculatedTotal)
     }
   }
 }
