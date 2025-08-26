@@ -21,7 +21,7 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.LocalDate
 
 case class RefundDetails(
-    refundDate: LocalDate,
+    refundDate: Option[LocalDate],
     refundMethod: Option[String],
     refundRequestDate: Option[LocalDate],
     refundRequestAmount: BigDecimal,
