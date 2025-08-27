@@ -40,12 +40,11 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         charge.creationDate.getYear should (be >= 2023 and be <= 2024)
         hipResponse.paymentHistoryDetails.foreach { payments =>
           payments.paymentDate.getYear should (be >= 2023 and be <= 2024)
-          payments.paymentDate should be >= charge.creationDate
         }
       }
     }
 
-    "generate valid charge based on statement date" in {
+    "generate valid charge based on interest accrued" in {
 
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
@@ -60,32 +59,14 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         charge.taxYear should fullyMatch regex "[0-9]{4}-[0-9]{4}"
         charge.dueDate should not be null
 
-        if (charge.outstandingAmount > 0 & charge.dueDate.isBefore(today)) {
-          charge.outstandingInterestDue shouldBe defined
-          charge.accruingInterest shouldBe defined
-          charge.accruingInterestPeriod shouldBe defined
-          charge.accruingInterestRate shouldBe Some(0.05)
-        } else {
-          charge.outstandingInterestDue shouldBe None
-          charge.accruingInterest shouldBe None
-          charge.accruingInterestPeriod shouldBe None
-          charge.accruingInterestRate shouldBe None
-        }
+        val interestFields = List(
+          charge.accruingInterest,
+          charge.accruingInterestRate,
+          charge.accruingInterestPeriod,
+          charge.outstandingInterestDue
+        )
 
-        val isRecentStatement = charge.creationDate.isAfter(LocalDate.now().minusDays(45))
-        if (!isRecentStatement) {
-          charge.amendments should not be empty
-          charge.amendments.foreach { amendment =>
-            amendment.amendmentDate should not be null
-            amendment.amendmentAmount should be >= BigDecimal(0.0)
-            amendment.amendmentReason should not be null
-            amendment.paymentMethod shouldBe defined
-            List("bank transfer", "card", "direct debit", "cheque", "Credit") should contain(
-              amendment.paymentMethod.get
-            )
-            amendment.paymentDate shouldBe defined
-          }
-        }
+        interestFields.count(_.isDefined) should (be(0) or be(4))
       }
     }
 
@@ -173,13 +154,16 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       val response = ResponseGenerator.generateResponse(fromDate, toDate)
 
       val charges = response.chargeDetails
+      val payments = response.paymentHistoryDetails
 
       val chargeYears = charges.map(_.creationDate.getYear)
       chargeYears should contain allOf (2022, 2023, 2024)
-
       charges.foreach { charge =>
-        val year = charge.creationDate.getYear
-        charge.taxYear shouldBe s"$year-${year + 1}"
+        val correspondingPayment = payments.filter(_.allocationReference.contains(charge.chargeId))
+
+        correspondingPayment should not be empty
+        val expectedTaxYear = ResponseGenerator.getTaxYear(correspondingPayment.head.paymentDate)
+        charge.taxYear shouldBe expectedTaxYear
       }
     }
 

@@ -34,14 +34,9 @@ object ResponseGenerator extends Logging {
   private val today: LocalDate = ZonedDateTime.now(ZoneOffset.UTC).toLocalDate
 
   private def dateGenerator(year: Int): LocalDate = {
-    val startOfYear = LocalDate.of(year, 1, 1)
-    val randomDayOfYear = random.nextInt(startOfYear.lengthOfYear()) + 1
-
-    if (year == today.getYear) {
-      today.minusMonths(random.nextInt(ChronoUnit.MONTHS.between(startOfYear, today).toInt))
-    } else {
-      startOfYear.plusDays(randomDayOfYear - 1)
-    }
+    val randomStatementMonths = random.shuffle(List(4, 10)).head
+    val randomStatementDays = random.nextInt(30) + 1
+    LocalDate.of(year, randomStatementMonths, randomStatementDays)
   }
 
   def generateResponse(fromDate: LocalDate, toDate: LocalDate): HipResponse = {
@@ -82,19 +77,18 @@ object ResponseGenerator extends Logging {
     val allYears = groupedCharges.keySet ++ groupedPayments.keySet
 
     val updatedChargesWithRefunds = allYears.map { year =>
-      val yearCharges = groupedCharges.getOrElse(year, List.empty[ChargeDetails])
-      val yearPayments = groupedPayments.getOrElse(year, List.empty[PaymentHistoryDetails])
+      val yearCharges = groupedCharges.getOrElse(year, List.empty)
+      val yearPayments = groupedPayments.getOrElse(year, List.empty)
       val outstandingAmount =
         yearPayments.map(_.paymentAmount).sum - yearCharges.map(_.chargeAmount).sum
       if (outstandingAmount < 0) {
-        (yearCharges.map(calculateInterest), List.empty[RefundDetails])
+        (yearCharges.map(calculateInterest), List.empty)
       } else if (outstandingAmount == 0) {
-        (yearCharges, List.empty[RefundDetails])
+        (yearCharges, List.empty)
       } else {
         val mostRecentPaymentDate: LocalDate =
           if (yearPayments.nonEmpty) yearPayments.map(_.paymentDate).max
           else LocalDate.ofYearDay(year, today.getDayOfYear)
-
         (yearCharges, List(generateRefund(outstandingAmount, mostRecentPaymentDate)))
       }
     }.toList
@@ -110,7 +104,7 @@ object ResponseGenerator extends Logging {
       surplus: BigDecimal,
       mostRecentPaymentDate: LocalDate
   ): RefundDetails = {
-    val requestDate = mostRecentPaymentDate.plusDays(random.nextInt(30))
+    val requestDate = mostRecentPaymentDate.plusDays(7 + random.nextInt(23))
     val refundDate = requestDate.plusDays(random.nextInt(60))
     val interest =
       (BigDecimal(ChronoUnit.DAYS.between(requestDate, requestDate)) / BigDecimal(28)) *
@@ -136,7 +130,7 @@ object ResponseGenerator extends Logging {
 
       charge.copy(
         accruingInterest = interest,
-        accruingInterestRate = Some(BigDecimal(0.5)),
+        accruingInterestRate = Some(BigDecimal(0.05)),
         accruingInterestPeriod =
           interest.map(_ => AccruingInterestPeriod(charge.dueDate.plusMonths(1), today)),
         outstandingInterestDue = interest
@@ -154,9 +148,6 @@ object ResponseGenerator extends Logging {
       payments.map(_.paymentAmount).sum -
         charges.map(_.chargeAmount).sum -
         refunds.map(_.refundRequestAmount).sum
-    )
-    logger.info(
-      s"total payments: ${payments.map(_.paymentAmount).sum} \n totalCharges:${charges.map(_.chargeAmount).sum} \n payments-charges= ${payments.map(_.paymentAmount).sum - charges.map(_.chargeAmount).sum} \n totalRefunds: ${refunds.map(_.refundRequestAmount).sum} "
     )
     if (totalCreditAvailable <= BigDecimal(0)) {
       (charges, BigDecimal(0))
@@ -213,8 +204,7 @@ object ResponseGenerator extends Logging {
     charge.copy(amendments = charge.amendments :+ amendment, outstandingAmount = remainingBalance)
   }
 
-  private def generatePaymentHistory(statementDate: LocalDate): PaymentHistoryDetails = {
-    val paymentDate = statementDate.plusDays(random.nextInt(30))
+  private def generatePaymentHistory(paymentDate: LocalDate): PaymentHistoryDetails = {
     val paymentAmount = BigDecimal(random.between(500, 50000))
     PaymentHistoryDetails(
       paymentAmount = paymentAmount,
@@ -238,31 +228,39 @@ object ResponseGenerator extends Logging {
   ): List[ChargeDetails] = {
     payments.map { paymentItem =>
       val isNotRecentStatement: Boolean = paymentItem.paymentDate.isBefore(today.minusDays(45))
-      val dueDate: LocalDate = paymentItem.paymentDate.plusMonths(2)
-      val taxYear = s"${paymentItem.paymentDate.getYear}-${paymentItem.paymentDate.getYear + 1}"
-      val processDate = paymentItem.processedDate.getOrElse(dueDate.minusDays(random.nextInt(10)))
+      val creationDate = paymentItem.paymentDate.minusDays(random.between(10, 15))
+      val processDate = paymentItem.processedDate.getOrElse(paymentItem.paymentDate.plusDays(6))
       val chargeAmount: BigDecimal = biasedRandomMultiplication(paymentItem.paymentAmount)
       val amendmentAmount =
         if (chargeAmount < paymentItem.paymentAmount) chargeAmount else paymentItem.paymentAmount
-      val outstandingAmount =
+      val outstandingAmount = {
         roundValue(if (isNotRecentStatement) chargeAmount - amendmentAmount else chargeAmount)
+      }
       ChargeDetails(
         chargeId = paymentItem.allocationReference.headOption.getOrElse(generateId()),
-        creationDate = dueDate.minusDays(random.between(30, 60)),
+        creationDate = creationDate,
         chargeType = randomChargeType,
         chargeAmount = chargeAmount,
-        taxYear = taxYear,
-        dueDate = dueDate,
+        taxYear = getTaxYear(paymentItem.paymentDate),
+        dueDate = creationDate.plusMonths(1),
         amendments =
           if (isNotRecentStatement)
             generateAmendment(processDate, amendmentAmount, paymentItem)
-          else List.empty[Amendment],
+          else List.empty,
         outstandingAmount = outstandingAmount,
         outstandingInterestDue = None,
         accruingInterest = None,
         accruingInterestPeriod = None,
         accruingInterestRate = None
       )
+    }
+  }
+
+  def getTaxYear(date: LocalDate): String = {
+    if (date.isBefore(LocalDate.of(date.getYear, 4, 6))) {
+      s"${date.getYear - 1}-${date.getYear}"
+    } else {
+      s"${date.getYear}-${date.getYear + 1}"
     }
   }
 
@@ -312,7 +310,7 @@ object ResponseGenerator extends Logging {
           )
         )
       }
-      .getOrElse(List.empty[CodedOutDetail])
+      .getOrElse(List.empty)
     val totalOverDueBalance = overDueChargesWithAnOutstandingAmount
       .map(_.outstandingAmount)
       .sum - getCodedOut.map(_.totalAmount).sum
