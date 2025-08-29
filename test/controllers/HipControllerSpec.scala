@@ -30,6 +30,7 @@ import services.HipService
 import utils.constants.RequestResponseConstants.*
 
 import java.time.LocalDate
+import java.time.format.DateTimeParseException
 
 class HipControllerSpec extends AnyWordSpec with Matchers {
   private val mockService: HipService = mock[HipService]
@@ -61,13 +62,12 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid dates" in {
-      val result =
-        controller.getSelfAssessmentData(badUtrHipInvalidCorrelationId, "2-20-2023", "2-20-2024")(
-          fakeRequest
-        )
+      when(mockService.generateHipResponse("2-20-2023", "2-20-2024")).thenThrow(new DateTimeParseException("Parse failed", "bad-date", 0))
+      val result = controller.getSelfAssessmentData(validUtr, "2-20-2023", "2-20-2024")(fakeRequest)
+
       status(result) shouldBe Status.BAD_REQUEST
       contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Submission has not passed validation. Invalid Correlation Id."
+        "message" -> "Invalid date inputted. The date needs to follow YYYY-MM-DD format"
       )
     }
 
