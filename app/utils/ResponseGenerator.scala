@@ -162,18 +162,21 @@ object ResponseGenerator extends Logging {
       creditAvailable: BigDecimal,
       charges: List[ChargeDetails]
   ): (List[ChargeDetails], BigDecimal) = {
+    if (creditAvailable <= BigDecimal(0)) {
+      (charges, creditAvailable)
+    } else {
+      getOverdueOrFutureCharges(charges) match {
+        case None =>
+          (charges, creditAvailable)
+        case Some(eligibleCharge) =>
+          val creditToApply = creditAvailable.min(eligibleCharge.outstandingAmount)
+          val remainingAmount = creditAvailable - creditToApply
+          val updatedCharge = creditAmendment(eligibleCharge, creditToApply)
+          val newProcessedCharges =
+            charges.filterNot(_.chargeId == eligibleCharge.chargeId) :+ updatedCharge
 
-    getOverdueOrFutureCharges(charges) match {
-      case None =>
-        (charges, creditAvailable)
-      case Some(eligibleCharge) =>
-        val creditToApply = creditAvailable.min(eligibleCharge.outstandingAmount)
-        val remainingAmount = creditAvailable - creditToApply
-        val updatedCharge = creditAmendment(eligibleCharge, creditToApply)
-        val newProcessedCharges =
-          charges.filterNot(_.chargeId == eligibleCharge.chargeId) :+ updatedCharge
-
-        allocateCredit(remainingAmount, newProcessedCharges)
+          allocateCredit(remainingAmount, newProcessedCharges)
+      }
     }
   }
 
@@ -186,7 +189,10 @@ object ResponseGenerator extends Logging {
       overdueChargesWithOutstanding.toSet.minByOption(_.dueDate)
     } else {
       charges
-        .filter(charge => charge.amendments.isEmpty)
+        .filter(charge =>
+          charge.amendments.isEmpty &&
+            charge.outstandingAmount > BigDecimal(0)
+        )
         .minByOption(_.dueDate)
     }
   }

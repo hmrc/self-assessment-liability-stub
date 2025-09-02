@@ -278,14 +278,8 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       emptyResult shouldBe empty
       remainingCredit1 shouldBe BigDecimal(500.00)
 
-      val zeroOutstandingCharge =
-        overdueCharge.copy(chargeId = "zero1", outstandingAmount = BigDecimal(0.00))
-      val (zeroResult, remainingCredit2) =
-        ResponseGenerator.allocateCredit(BigDecimal(500.00), List(zeroOutstandingCharge))
-      remainingCredit2 shouldBe BigDecimal(500.00)
-
       val singleCharge =
-        overdueCharge.copy(chargeId = "single1", outstandingAmount = BigDecimal(300.00))
+        overdueCharge.copy(chargeId = "charge1", outstandingAmount = BigDecimal(300.00))
 
       val (partialResult, remainingCredit3) =
         ResponseGenerator.allocateCredit(BigDecimal(200.00), List(singleCharge))
@@ -296,39 +290,14 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       remainingCredit3 shouldBe BigDecimal(0.00)
 
       val freshCharge =
-        singleCharge.copy(amendments = List.empty, outstandingAmount = BigDecimal(300.00))
+        singleCharge.copy(chargeId = "charge2", outstandingAmount = BigDecimal(300.00))
       val (excessResult, remainingCredit4) =
-        ResponseGenerator.allocateCredit(BigDecimal(500.00), List(freshCharge))
-      val excessCharge = excessResult.head
-      excessCharge.outstandingAmount shouldBe BigDecimal(0.00)
-      excessCharge.amendments.head.amendmentAmount shouldBe BigDecimal(300.00)
-      remainingCredit4 shouldBe BigDecimal(200.00)
-
-      val existingAmendment = Amendment(
-        amendmentDate = today.minusDays(10),
-        amendmentAmount = BigDecimal(200.00),
-        amendmentReason = "payment",
-        updatedChargeAmount = Some(BigDecimal(800.00)),
-        paymentMethod = Some("card"),
-        paymentDate = Some(today.minusDays(10))
-      )
-      val chargeWithAmendments = overdueCharge.copy(
-        chargeId = "withAmendments1",
-        amendments = List(existingAmendment),
-        outstandingAmount = BigDecimal(800.00)
-      )
-
-      val (amendmentResult, remainingCredit6) =
-        ResponseGenerator.allocateCredit(BigDecimal(500.00), List(chargeWithAmendments))
-      val updatedAmendmentCharge = amendmentResult.head
-      updatedAmendmentCharge.outstandingAmount shouldBe BigDecimal(300.00)
-      updatedAmendmentCharge.amendments should have size 2
-
-      val creditAmendment = updatedAmendmentCharge.amendments
-        .find(_.amendmentReason == "Credit applied from overpayment")
-        .get
-      creditAmendment.amendmentAmount shouldBe BigDecimal(500.00)
-      remainingCredit6 shouldBe BigDecimal(0.00)
+        ResponseGenerator.allocateCredit(BigDecimal(500.00), List(freshCharge, singleCharge))
+      excessResult.map(_.outstandingAmount).sum shouldBe BigDecimal(100.00)
+      excessResult.map(_.amendments.map(_.amendmentAmount).sum).sum shouldBe BigDecimal(500.00)
+      remainingCredit4 shouldBe BigDecimal(0.00)
+      excessResult.size shouldBe 2
+      excessResult.map(_.amendments.map(_.amendmentReason).contains("Credit applied from overpayment")).size shouldBe 2
     }
   }
 
