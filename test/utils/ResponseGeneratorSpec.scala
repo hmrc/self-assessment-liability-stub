@@ -297,7 +297,9 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       excessResult.map(_.amendments.map(_.amendmentAmount).sum).sum shouldBe BigDecimal(500.00)
       remainingCredit4 shouldBe BigDecimal(0.00)
       excessResult.size shouldBe 2
-      excessResult.map(_.amendments.map(_.amendmentReason).contains("Credit applied from overpayment")).size shouldBe 2
+      excessResult
+        .map(_.amendments.map(_.amendmentReason).contains("Credit applied from overpayment"))
+        .size shouldBe 2
     }
   }
 
