@@ -35,7 +35,7 @@ object ResponseGenerator extends Logging {
 
   private def dateGenerator(year: Int): LocalDate = {
     val randomStatementMonths = random.shuffle(List(4, 10)).head
-    val randomStatementDays = random.nextInt(30) + 1
+    val randomStatementDays = random.nextInt(29) + 1
     LocalDate.of(year, randomStatementMonths, randomStatementDays)
   }
 
@@ -96,9 +96,7 @@ object ResponseGenerator extends Logging {
     (updatedChargesWithRefunds.flatMap(_._1), updatedChargesWithRefunds.flatMap(_._2))
   }
 
-  private def isFutureDate(date: LocalDate): Boolean = {
-    if date.isBefore(today) then false else true
-  }
+  private inline def isPastDate(date: LocalDate): Boolean = date.isBefore(today)
 
   private def generateRefund(
       surplus: BigDecimal,
@@ -110,9 +108,9 @@ object ResponseGenerator extends Logging {
       (BigDecimal(ChronoUnit.DAYS.between(requestDate, requestDate)) / BigDecimal(28)) *
         BigDecimal(0.001) * surplus
     RefundDetails(
-      refundDate = if isFutureDate(refundDate) then None else Some(refundDate),
+      refundDate = if !isPastDate(refundDate) then None else Some(refundDate),
       refundMethod = Some(randomPaymentMethod),
-      refundRequestDate = if isFutureDate(requestDate) then None else Some(requestDate),
+      refundRequestDate = if !isPastDate(requestDate) then None else Some(requestDate),
       refundRequestAmount = surplus,
       refundDescription = Some(
         s"Surplus calculated for overpayment(s) made up to ${mostRecentPaymentDate.format(dateFormatter)}"
@@ -123,7 +121,7 @@ object ResponseGenerator extends Logging {
     )
   }
   private def calculateInterest(charge: ChargeDetails): ChargeDetails = {
-    if (charge.dueDate.plusMonths(1).isAfter(today) || charge.outstandingAmount == 0) {
+    if (!isPastDate(charge.dueDate.plusMonths(1)) || charge.outstandingAmount == 0) {
       charge
     } else {
       val interest = calculateInterestDue(charge.dueDate, charge.outstandingAmount)
@@ -225,8 +223,8 @@ object ResponseGenerator extends Logging {
 
   private def biasedRandomMultiplication(value: BigDecimal): BigDecimal = {
     val biasedList: List[BigDecimal] =
-      (90 to 105 by 1).map(i => BigDecimal(i) / BigDecimal(100)).toList ++
-        List(BigDecimal(1), BigDecimal(1), BigDecimal(1), BigDecimal(1), BigDecimal(1))
+      (BigDecimal(90) to BigDecimal(105) by 1).map(i => i / 100).toList ++
+        List(1, 1, 1, 1, 1)
     roundValue(value * random.shuffle(biasedList).head)
   }
 

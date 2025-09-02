@@ -161,13 +161,13 @@ object HipControllerSpec {
 
   val sampleHipResponse: HipResponse = HipResponse(
     balanceDetails = BalanceDetails(
-      totalOverdueBalance = BigDecimal("1000.00"),
-      totalPayableBalance = BigDecimal("500.00"),
+      totalOverdueBalance = 1000.00,
+      totalPayableBalance = 500.00,
       earliestPayableDueDate = Some(LocalDate.of(2024, 2, 15)),
-      totalPendingBalance = BigDecimal("200.00"),
+      totalPendingBalance = 200.00,
       earliestPendingDueDate = Some(LocalDate.of(2024, 6, 15)),
-      totalBalance = BigDecimal("1700.00"),
-      totalCreditAvailable = BigDecimal("0.00"),
+      totalBalance = 1700.00,
+      totalCreditAvailable = 0.00,
       codedOutDetail = List.empty[CodedOutDetail]
     ),
     chargeDetails = List(
@@ -175,11 +175,11 @@ object HipControllerSpec {
         chargeId = "charge-123",
         creationDate = LocalDate.of(2023, 1, 15),
         chargeType = "ITSA",
-        chargeAmount = BigDecimal("1000.00"),
+        chargeAmount = 1000.00,
         taxYear = "2023-2024",
         dueDate = LocalDate.of(2024, 1, 31),
         amendments = List.empty,
-        outstandingAmount = BigDecimal("1000.00"),
+        outstandingAmount = 1000.00,
         outstandingInterestDue = None,
         accruingInterest = None,
         accruingInterestPeriod = None,
@@ -189,7 +189,7 @@ object HipControllerSpec {
     refundDetails = List.empty,
     paymentHistoryDetails = List(
       PaymentHistoryDetails(
-        paymentAmount = BigDecimal("500.00"),
+        paymentAmount = 500.00,
         paymentReference = "payment-123",
         paymentMethod = Some("bank transfer"),
         paymentDate = LocalDate.of(2023, 2, 15),

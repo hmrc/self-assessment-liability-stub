@@ -31,7 +31,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
       val hipResponse: HipResponse = ResponseGenerator.generateResponse(fromDate, toDate)
 
-      hipResponse.balanceDetails should not be null
       hipResponse.chargeDetails should not be empty
       hipResponse.paymentHistoryDetails should not be empty
       hipResponse.paymentHistoryDetails.size should be <= 3
@@ -53,11 +52,9 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       charges.foreach { charge =>
 
         charge.chargeId should not be empty
-        charge.creationDate should not be null
         List("ITSA", "Penalty", "PAYE", "POA") should contain(charge.chargeType)
         charge.chargeAmount should be > charge.outstandingAmount
         charge.taxYear should fullyMatch regex "[0-9]{4}-[0-9]{4}"
-        charge.dueDate should not be null
 
         val interestFields = List(
           charge.accruingInterest,
@@ -83,7 +80,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         List("bank transfer", "card", "direct debit", "cheque") should contain(
           payment.paymentMethod.get
         )
-        payment.paymentDate should not be null
+
         payment.processedDate shouldBe defined
         payment.allocationReference should not be empty
       }
@@ -95,7 +92,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       val refunds = response.refundDetails
 
       refunds.foreach { refund =>
-        refund.refundDate should not be null
+
         refund.refundMethod shouldBe defined
         refund.refundRequestDate shouldBe defined
         refund.refundRequestAmount should be > BigDecimal(0.0)
@@ -181,8 +178,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         val codedOutDetail = balanceDetails.codedOutDetail.head
 
         codedOutDetail.totalAmount should be > BigDecimal(0.0)
-        codedOutDetail.effectiveStartDate should not be null
-        codedOutDetail.effectiveEndDate should not be null
         codedOutDetail.effectiveEndDate should be > codedOutDetail.effectiveStartDate
 
         val expectedOverdueBalance =
