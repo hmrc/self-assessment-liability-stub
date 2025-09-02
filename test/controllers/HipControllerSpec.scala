@@ -62,7 +62,8 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid dates" in {
-      when(mockService.generateHipResponse("2-20-2023", "2-20-2024")).thenThrow(new DateTimeParseException("Parse failed", "bad-date", 0))
+      when(mockService.generateHipResponse("2-20-2023", "2-20-2024"))
+        .thenThrow(new DateTimeParseException("Parse failed", "bad-date", 0))
       val result = controller.getSelfAssessmentData(validUtr, "2-20-2023", "2-20-2024")(fakeRequest)
 
       status(result) shouldBe Status.BAD_REQUEST

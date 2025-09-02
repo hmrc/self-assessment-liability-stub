@@ -129,7 +129,7 @@ object ResponseGenerator extends Logging {
       val interest = calculateInterestDue(charge.dueDate, charge.outstandingAmount)
 
       charge.copy(
-        outstandingAmount= charge.outstandingAmount + interest.getOrElse(0.0),
+        outstandingAmount = charge.outstandingAmount + interest.getOrElse(0.0),
         accruingInterest = interest,
         accruingInterestRate = Some(BigDecimal(0.05)),
         accruingInterestPeriod =
@@ -158,7 +158,7 @@ object ResponseGenerator extends Logging {
   }
 
   @tailrec
-   def allocateCredit(
+  def allocateCredit(
       creditAvailable: BigDecimal,
       charges: List[ChargeDetails]
   ): (List[ChargeDetails], BigDecimal) = {
