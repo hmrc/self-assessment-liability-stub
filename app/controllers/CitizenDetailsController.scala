@@ -49,6 +49,11 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
   }
 
   def getNino(utr: String): Action[AnyContent] = Action.async { implicit request =>
+    val message: String =
+      if utrErrorList.contains(utr) then
+        s"Calling CID with $utr which is a test data that will result in an error"
+      else s"Calling CID with $utr"
+    logger.info(message)
     if (utr.equalsIgnoreCase(noNinoFoundForUtr)) {
       Future.successful(
         NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))

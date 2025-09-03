@@ -29,6 +29,20 @@ object RequestResponseConstants {
   final val badUtrHipServerError: String = "3300000500"
   final val badUtrHipExternalServiceError: String = "3300000502"
   final val badUtrHipServiceUnavailable: String = "3300000503"
+  final val utrErrorList: List[String] = List(
+    badUtrHipInvalidCorrelationId,
+    badUtrHipExternalServiceError,
+    badUtrHipServerError,
+    badUtrNinoServerError,
+    noNinoFoundForUtr,
+    badUtrHipUtrNotFound,
+    badUtrHipForbidden,
+    badUtrHipUtrInvalid,
+    badUtrMultiple,
+    badUtrInvalidNino,
+    badUtrHipUnauthorised,
+    badUtrHipServiceUnavailable
+  )
   final val validNino1: String = "GG000000X"
   final val validNino2: String = "GG000000Z"
   final val invalidNino: String = "NI0000400"
