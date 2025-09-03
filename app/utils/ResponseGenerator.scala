@@ -96,7 +96,7 @@ object ResponseGenerator extends Logging {
     (updatedChargesWithRefunds.flatMap(_._1), updatedChargesWithRefunds.flatMap(_._2))
   }
 
-  private inline def isPastDate(date: LocalDate): Boolean = date.isBefore(today)
+  private inline def isFutureDate(date: LocalDate): Boolean = date.isAfter(today)
 
   private def generateRefund(
       surplus: BigDecimal,
@@ -108,9 +108,9 @@ object ResponseGenerator extends Logging {
       (BigDecimal(ChronoUnit.DAYS.between(requestDate, requestDate)) / BigDecimal(28)) *
         BigDecimal(0.001) * surplus
     RefundDetails(
-      refundDate = if !isPastDate(refundDate) then None else Some(refundDate),
+      refundDate = if isFutureDate(refundDate) then None else Some(refundDate),
       refundMethod = Some(randomPaymentMethod),
-      refundRequestDate = if !isPastDate(requestDate) then None else Some(requestDate),
+      refundRequestDate = if isFutureDate(requestDate) then None else Some(requestDate),
       refundRequestAmount = surplus,
       refundDescription = Some(
         s"Surplus calculated for overpayment(s) made up to ${mostRecentPaymentDate.format(dateFormatter)}"
@@ -121,7 +121,7 @@ object ResponseGenerator extends Logging {
     )
   }
   private def calculateInterest(charge: ChargeDetails): ChargeDetails = {
-    if (!isPastDate(charge.dueDate.plusMonths(1)) || charge.outstandingAmount == 0) {
+    if (isFutureDate(charge.dueDate.plusMonths(1)) || charge.outstandingAmount == 0) {
       charge
     } else {
       val interest = calculateInterestDue(charge.dueDate, charge.outstandingAmount)
