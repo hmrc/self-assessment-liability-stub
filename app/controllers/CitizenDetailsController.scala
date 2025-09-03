@@ -54,12 +54,12 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
         NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))
       )
     } else if (utr.equalsIgnoreCase(badUtrMultiple)) {
-      val validNinos = List(validNino, validNino)
+      val validNinos = List(validNino1, validNino2)
       logger.info(
         s"${validNinos.length} valid ninos associated with $badUtrMultiple returned from CID"
       )
       Future.successful(
-        InternalServerError(Json.parse(generateSuccessResponse(List(validNino, validNino))))
+        InternalServerError(Json.parse(generateSuccessResponse(validNinos)))
       )
     } else if (utr.equalsIgnoreCase(badUtrInvalidNino)) {
       Future.successful(
@@ -67,11 +67,11 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
       )
     } else if (utr.equalsIgnoreCase(badUtrNinoServerError)) {
       Future.successful(
-        InternalServerError(Json.obj("message" -> "Downstream Error"))
+        Ok(Json.parse(generateSuccessResponse(List(badNinoServerError))))
       )
     } else {
       Future.successful(
-        Ok(Json.parse(generateSuccessResponse(List(validNino))))
+        Ok(Json.parse(generateSuccessResponse(List(validNino1))))
       )
     }
   }

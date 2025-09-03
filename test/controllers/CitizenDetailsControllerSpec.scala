@@ -22,7 +22,7 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
-import utils.constants.RequestResponseConstants.validNino
+import utils.constants.RequestResponseConstants.*
 
 class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
 
@@ -56,12 +56,12 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
       val result = controller.getNino("any other UTR")(fakeRequest)
       status(result) shouldBe Status.OK
       contentAsJson(result) shouldBe Json.parse(
-        controller.generateSuccessResponse(List("AA055075C"))
+        controller.generateSuccessResponse(List(validNino1))
       )
     }
 
     "return 404 NOT_FOUND with correct error message for no matching UTR" in {
-      val result = controller.getNino("1000000404")(fakeRequest)
+      val result = controller.getNino(noNinoFoundForUtr)(fakeRequest)
       status(result) shouldBe Status.NOT_FOUND
       contentAsJson(result) shouldBe Json.obj(
         "message" -> "No record for the given SaUtr is found."
@@ -69,26 +69,26 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message for multiple matching UTRs" in {
-      val result = controller.getNino("2000000500")(fakeRequest)
+      val result = controller.getNino(badUtrMultiple)(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.parse(
-        controller.generateSuccessResponse(List(validNino, validNino))
+        controller.generateSuccessResponse(List(validNino1, validNino2))
       )
     }
 
-    "return 500 INTERNAL_SERVER_ERROR with correct error message when service unavailable" in {
-      val result = controller.getNino("1777777200")(fakeRequest)
-      status(result) shouldBe Status.INTERNAL_SERVER_ERROR
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Downstream Error"
+    "return 200 for a utr that will result in server error in MTD look up service" in {
+      val result = controller.getNino(badUtrNinoServerError)(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(List(badNinoServerError))
       )
     }
 
     "return 200 with invalid NINO for a specific UTR" in {
-      val result = controller.getNino("1666666200")(fakeRequest)
+      val result = controller.getNino(badUtrInvalidNino)(fakeRequest)
       status(result) shouldBe Status.OK
       contentAsJson(result) shouldBe Json.parse(
-        controller.generateSuccessResponse(List("ss666666b"))
+        controller.generateSuccessResponse(List(invalidNino))
       )
     }
 

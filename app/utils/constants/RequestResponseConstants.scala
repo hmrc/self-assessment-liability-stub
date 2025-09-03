@@ -17,14 +17,22 @@
 package utils.constants
 
 object RequestResponseConstants {
-  final val noNinoFoundForUtr: String = "1000000404"
-  final val badUtrMultiple: String = "2000000500"
-  final val badUtrInvalidNino: String = "1666666200"
-  final val badUtrNinoServerError: String = "1777777200"
-
-  final val validNino: String = "AA055075C"
-  final val invalidNino: String = "ss666666b"
-  final val badNinoServerError: String = "ss777777b"
+  final val noNinoFoundForUtr: String = "1100000404"
+  final val badUtrMultiple: String = "1100000500"
+  final val badUtrInvalidNino: String = "2200000400"
+  final val badUtrNinoServerError: String = "2200000500"
+  final val badUtrHipInvalidCorrelationId: String = "3300000400"
+  final val badUtrHipUnauthorised: String = "3300000401"
+  final val badUtrHipForbidden: String = "3300000403"
+  final val badUtrHipUtrNotFound: String = "3300000404"
+  final val badUtrHipUtrInvalid: String = "3300000422"
+  final val badUtrHipServerError: String = "3300000500"
+  final val badUtrHipExternalServiceError: String = "3300000502"
+  final val badUtrHipServiceUnavailable: String = "3300000503"
+  final val validNino1: String = "GG000000X"
+  final val validNino2: String = "GG000000Z"
+  final val invalidNino: String = "NI0000400"
+  final val badNinoServerError: String = "NI0000500"
 
   final val validMtditid: String = "XQIT00000000001"
 }

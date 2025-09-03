@@ -20,8 +20,9 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
+import utils.constants.RequestResponseConstants.{badNinoServerError, invalidNino}
 
 class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
 
@@ -36,7 +37,7 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid nino" in {
-      val result = controller.getMtdId("ss666666b")(fakeRequest)
+      val result = controller.getMtdId(invalidNino)(fakeRequest)
       status(result) shouldBe Status.BAD_REQUEST
       contentAsJson(result) shouldBe Json.obj(
         "message" -> "Invalid national insurance number supplied"
@@ -44,7 +45,7 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message when service unavailable" in {
-      val result = controller.getMtdId("ss777777b")(fakeRequest)
+      val result = controller.getMtdId(badNinoServerError)(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.obj("message" -> "Service currently unavailable")
     }
