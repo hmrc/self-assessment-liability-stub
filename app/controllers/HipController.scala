@@ -17,7 +17,8 @@
 package controllers
 
 import models.HipResponse
-import play.api.libs.json.{JsResultException, JsValue, Json}
+import play.api.Logging
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import services.HipService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -29,8 +30,14 @@ import scala.concurrent.Future
 
 @Singleton()
 class HipController @Inject() (cc: ControllerComponents, service: HipService)
-    extends BackendController(cc) {
-  def getSelfAssessmentData(utr: String, dateFrom: String, dateTo: String): Action[AnyContent] =
+    extends BackendController(cc)
+    with Logging {
+  def getSelfAssessmentData(utr: String, dateFrom: String, dateTo: String): Action[AnyContent] = {
+    val message: String =
+      if utrErrorList.contains(utr) then
+        s"Calling HIP with $utr which is a test data that will result in an error"
+      else s"Calling HIP with $utr"
+    logger.info(message)
     Action.async { implicit request =>
       if (utr.equalsIgnoreCase(badUtrHipInvalidCorrelationId)) {
         Future.successful(
@@ -82,12 +89,9 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
                 )
               )
             )
-          case error: JsResultException =>
-            Future.successful(
-              InternalServerError(Json.obj("message" -> "Generated a bad response"))
-            )
         }
 
       }
     }
+  }
 }

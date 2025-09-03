@@ -23,7 +23,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.http.Status
-import play.api.libs.json.{JsResultException, Json}
+import play.api.libs.json.Json
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import services.HipService
@@ -123,17 +123,6 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
         )
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.obj("message" -> "Internal server error.")
-    }
-
-    "return 500 INTERNAL_SERVER_ERROR with correct error message if validation on the data returned from generator fails" in {
-      when(mockService.generateHipResponse(validFromDate, validToDate))
-        .thenThrow(JsResultException(Seq.empty))
-      val result =
-        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(
-          fakeRequest
-        )
-      status(result) shouldBe Status.INTERNAL_SERVER_ERROR
-      contentAsJson(result) shouldBe Json.obj("message" -> "Generated a bad response")
     }
 
     "return 502 BAD_GATEWAY with correct error message for service communication errors" in {
