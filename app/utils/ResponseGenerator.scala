@@ -246,7 +246,7 @@ object ResponseGenerator extends Logging {
         creationDate = creationDate,
         chargeType = randomChargeType,
         chargeAmount = chargeAmount,
-        taxYear = getTaxYear(paymentItem.paymentDate),
+        taxYear = formatTaxYear(getTaxYear(paymentItem.paymentDate)),
         dueDate = creationDate.plusMonths(1),
         amendments =
           if (isNotRecentStatement)
@@ -263,10 +263,16 @@ object ResponseGenerator extends Logging {
 
   def getTaxYear(date: LocalDate): String = {
     if (date.isBefore(LocalDate.of(date.getYear, 4, 6))) {
-      s"${date.getYear - 1}-${date.getYear}"
+      s"${date.getYear - 1}"
     } else {
-      s"${date.getYear}-${date.getYear + 1}"
+      s"${date.getYear}"
     }
+  }
+
+  def formatTaxYear(year: String): String = {
+    val startYear = year.toInt
+    val endYear = (startYear + 1)
+    s"$startYear-$endYear"
   }
 
   private def calculateInterestDue(

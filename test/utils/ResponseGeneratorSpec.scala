@@ -159,7 +159,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         val correspondingPayment = payments.filter(_.allocationReference.contains(charge.chargeId))
 
         correspondingPayment should not be empty
-        val expectedTaxYear = ResponseGenerator.getTaxYear(correspondingPayment.head.paymentDate)
+        val expectedTaxYear = ResponseGenerator.formatTaxYear(ResponseGenerator.getTaxYear(correspondingPayment.head.paymentDate))
         charge.taxYear shouldBe expectedTaxYear
       }
     }
