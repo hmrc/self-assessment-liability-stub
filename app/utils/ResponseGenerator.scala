@@ -349,7 +349,6 @@ object ResponseGenerator extends Logging {
   }
 
   private def generateId(): String = {
-    f"${random.nextLong(1000000000000L)}%012d"
+    s"PAY${f"${random.nextLong(1000000000000L)}%012d"}"
   }
-
 }
