@@ -52,6 +52,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       charges.foreach { charge =>
 
         charge.chargeId should not be empty
+        charge.chargeId should fullyMatch regex "^[A-Za-z0-9-]{1,18}$"
         List("ITSA", "Penalty", "PAYE", "POA") should contain(charge.chargeType)
         charge.chargeAmount should be > charge.outstandingAmount
         charge.taxYear should fullyMatch regex "[0-9]{4}-[0-9]{4}"
@@ -254,7 +255,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
   "allocateCredit method" should {
     "handle comprehensive credit allocation scenarios" in {
       val overdueCharge = ChargeDetails(
-        chargeId = "12345",
+        chargeId = "ABC12345",
         creationDate = today.minusMonths(6),
         chargeType = "ITSA",
         chargeAmount = BigDecimal(1000.00),
@@ -274,7 +275,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       remainingCredit1 shouldBe BigDecimal(500.00)
 
       val singleCharge =
-        overdueCharge.copy(chargeId = "charge1", outstandingAmount = BigDecimal(300.00))
+        overdueCharge.copy(chargeId = "EFG23456", outstandingAmount = BigDecimal(300.00))
 
       val (partialResult, remainingCredit3) =
         ResponseGenerator.allocateCredit(BigDecimal(200.00), List(singleCharge))
@@ -285,7 +286,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       remainingCredit3 shouldBe BigDecimal(0.00)
 
       val freshCharge =
-        singleCharge.copy(chargeId = "charge2", outstandingAmount = BigDecimal(300.00))
+        singleCharge.copy(chargeId = "HIJ45678", outstandingAmount = BigDecimal(300.00))
       val (excessResult, remainingCredit4) =
         ResponseGenerator.allocateCredit(BigDecimal(500.00), List(freshCharge, singleCharge))
       excessResult.map(_.outstandingAmount).sum shouldBe BigDecimal(100.00)
