@@ -202,7 +202,7 @@ object ResponseGenerator extends Logging {
         amendmentDate = today.minusDays(random.nextInt(20)),
         amendmentAmount = amount,
         amendmentReason = "Credit applied from overpayment",
-        updatedChargeAmount = Some(remainingBalance),
+        isPaymentRelated = true,
         paymentMethod = None,
         paymentDate = None
       )
@@ -292,6 +292,7 @@ object ResponseGenerator extends Logging {
         amendmentDate = amendmentDate,
         amendmentAmount = amount,
         amendmentReason = "payment",
+        isPaymentRelated = true,
         paymentMethod = payment.paymentMethod,
         paymentDate = Some(payment.paymentDate)
       )
