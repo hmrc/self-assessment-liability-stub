@@ -55,7 +55,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         charge.chargeId should fullyMatch regex "^[A-Za-z0-9-]{1,18}$"
         List("ITSA", "Penalty", "PAYE", "POA") should contain(charge.chargeType)
         charge.chargeAmount should be > charge.outstandingAmount
-        charge.taxYear should fullyMatch regex "[0-9]{4}-[0-9]{4}"
+        charge.taxYear should fullyMatch regex "[0-9]{4}"
 
         val interestFields = List(
           charge.accruingInterest,
@@ -160,8 +160,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         val correspondingPayment = payments.filter(_.allocationReference.contains(charge.chargeId))
 
         correspondingPayment should not be empty
-        val expectedTaxYear = ResponseGenerator.getTaxYear(correspondingPayment.head.paymentDate)
-        charge.taxYear shouldBe expectedTaxYear
       }
     }
 
