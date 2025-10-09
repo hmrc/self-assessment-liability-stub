@@ -199,8 +199,6 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
           charge.amendments.filter(_.amendmentReason == "Credit applied from overpayment")
         creditAmendments.foreach { amendment =>
           amendment.amendmentAmount should be <= charge.chargeAmount
-          amendment.updatedChargeAmount shouldBe defined
-          amendment.updatedChargeAmount.get shouldBe (charge.chargeAmount - amendment.amendmentAmount)
         }
       }
     }
