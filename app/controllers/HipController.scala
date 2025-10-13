@@ -16,7 +16,7 @@
 
 package controllers
 
-import models.HipResponse
+import models.{HipError, HipErrorDetails, HipResponse, HipResponseError}
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -39,59 +39,100 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
       else s"Calling HIP with $utr"
     logger.info(message)
     Action.async { implicit request =>
-      if (utr.equalsIgnoreCase(badUtrHipInvalidCorrelationId)) {
-        Future.successful(
-          BadRequest(
-            Json.obj("message" -> "Submission has not passed validation. Invalid Correlation Id.")
+      utr match {
+        case u if u == badUtrHipInvalidCorrelationId.toLowerCase =>
+          val error = createErrorResponse(
+            "HIP",
+            None,
+            "INVALID_CORRELATIONID",
+            "Submission has not passed validation. Invalid CorrelationId."
           )
-        )
-      } else if (utr.equalsIgnoreCase(badUtrHipUnauthorised)) {
-        Future.successful(
-          Unauthorized(Json.obj("message" -> "Invalid basic authentication credentials."))
-        )
-      } else if (utr.equalsIgnoreCase(badUtrHipForbidden)) {
-        Future.successful(
-          Forbidden(
-            Json.obj("message" -> "User does not have authority to retrieve requested record.")
+          Future.successful(BadRequest(Json.toJson(error)))
+
+        case u if u == badUtrHipUnauthorised.toLowerCase =>
+          val error = createErrorResponse(
+            "HIP",
+            None,
+            "UNAUTHORIZED",
+            "Invalid basic authentication credentials."
           )
-        )
-      } else if (utr.equalsIgnoreCase(badUtrHipUtrNotFound)) {
-        Future.successful(
-          NotFound(Json.obj("message" -> "Identifier not found."))
-        )
-      } else if (utr.equalsIgnoreCase(badUtrHipUtrInvalid)) {
-        Future.successful(
-          UnprocessableEntity(Json.obj("message" -> "Invalid utr entered."))
-        )
-      } else if (utr.equalsIgnoreCase(badUtrHipServerError)) {
-        Future.successful(
-          InternalServerError(Json.obj("message" -> "Internal server error."))
-        )
-      } else if (utr.equalsIgnoreCase(badUtrHipExternalServiceError)) {
-        Future.successful(
-          BadGateway(Json.obj("message" -> "Error communicating with external service."))
-        )
-      } else if (utr.equalsIgnoreCase(badUtrHipServiceUnavailable)) {
-        Future.successful(
-          ServiceUnavailable(Json.obj("message" -> "Service unavailable"))
-        )
-      } else {
-        try {
-          val hipResponse: HipResponse = service.generateHipResponse(dateFrom, dateTo)
-          val json: JsValue = Json.toJson(hipResponse)
-          Future.successful(Ok(json))
-        } catch {
-          case _: DateTimeParseException =>
-            Future.successful(
-              BadRequest(
-                Json.obj(
-                  "message" -> "Invalid date inputted. The date needs to follow YYYY-MM-DD format"
-                )
+          Future.successful(Unauthorized(Json.toJson(error)))
+
+        case u if u == badUtrHipForbidden.toLowerCase =>
+          val error = createErrorResponse(
+            "HoD",
+            Some("ITSA Repayments Viewer"),
+            "FORBIDDEN",
+            "User does not have authority to retrieve requested record."
+          )
+          Future.successful(Forbidden(Json.toJson(error)))
+
+        case u if u == badUtrHipUtrNotFound.toLowerCase =>
+          val error = createErrorResponse(
+            "HoD",
+            Some("ITSA Repayments Viewer"),
+            "NOT_FOUND",
+            "Identifier not found."
+          )
+          Future.successful(NotFound(Json.toJson(error)))
+
+        case u if u == badUtrHipUtrInvalid.toLowerCase =>
+          val error = createErrorResponse(
+            "HoD",
+            Some("ITSA Repayments Viewer"),
+            "48003",
+            "Invalid UTR entered."
+          )
+          Future.successful(UnprocessableEntity(Json.toJson(error)))
+
+        case u if u == badUtrHipServerError.toLowerCase =>
+          val error = createErrorResponse("HIP", None, "SERVER_ERROR", "Internal server error.")
+          Future.successful(InternalServerError(Json.toJson(error)))
+
+        case u if u == badUtrHipExternalServiceError.toLowerCase =>
+          val error = createErrorResponse(
+            "HoD",
+            Some("SA Balance and Transaction details"),
+            "BAD_GATEWAY",
+            "Error communicating with external service."
+          )
+          Future.successful(BadGateway(Json.toJson(error)))
+
+        case u if u == badUtrHipServiceUnavailable.toLowerCase =>
+          val error = createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
+          Future.successful(ServiceUnavailable(Json.toJson(error)))
+        case _ =>
+          try {
+            val hipResponse: HipResponse = service.generateHipResponse(dateFrom, dateTo)
+            val json: JsValue = Json.toJson(hipResponse)
+            Future.successful(Ok(json))
+          } catch {
+            case _: DateTimeParseException =>
+              val error = createErrorResponse(
+                "HIP",
+                None,
+                "INVALID_DATE_FORMAT",
+                "Invalid date inputted. The date needs to follow YYYY-MM-DD format"
               )
-            )
-        }
+              Future.successful(BadRequest(Json.toJson(error)))
+          }
 
       }
     }
+  }
+
+  private def createErrorResponse(
+      origin: String,
+      service: Option[String],
+      errorType: String,
+      reason: String
+  ): HipResponseError = {
+    HipResponseError(
+      origin = origin,
+      service = service,
+      response = HipErrorDetails(
+        failures = List(HipError(errorType, reason))
+      )
+    )
   }
 }

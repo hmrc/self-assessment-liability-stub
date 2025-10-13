@@ -56,95 +56,145 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
           fakeRequest
         )
       status(result) shouldBe Status.BAD_REQUEST
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Submission has not passed validation. Invalid Correlation Id."
-      )
+      contentAsJson(result) shouldBe
+        Json.toJson(
+          createErrorResponse(
+            "HIP",
+            None,
+            "INVALID_CORRELATIONID",
+            "Submission has not passed validation. Invalid CorrelationId."
+          )
+        )
     }
 
-    "return 400 BAD_REQUEST with correct error message for invalid dates" in {
+    "return 400 BAD_REQUEST with correct error response for invalid dates" in {
       when(mockService.generateHipResponse("2-20-2023", "2-20-2024"))
         .thenThrow(new DateTimeParseException("Parse failed", "bad-date", 0))
       val result = controller.getSelfAssessmentData(validUtr, "2-20-2023", "2-20-2024")(fakeRequest)
 
       status(result) shouldBe Status.BAD_REQUEST
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Invalid date inputted. The date needs to follow YYYY-MM-DD format"
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse(
+          "HIP",
+          None,
+          "INVALID_DATE_FORMAT",
+          "Invalid date inputted. The date needs to follow YYYY-MM-DD format"
+        )
       )
     }
 
-    "return 401 UNAUTHORIZED with correct error message for invalid authentication credentials" in {
+    "return 401 UNAUTHORIZED with correct error response for invalid authentication credentials" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipUnauthorised, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.UNAUTHORIZED
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Invalid basic authentication credentials."
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse(
+          "HIP",
+          None,
+          "UNAUTHORIZED",
+          "Invalid basic authentication credentials."
+        )
       )
     }
 
-    "return 403 FORBIDDEN with correct error message when authority is denied" in {
+    "return 403 FORBIDDEN with correct error response when authority is denied" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipForbidden, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.FORBIDDEN
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "User does not have authority to retrieve requested record."
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse(
+          "HoD",
+          Some("ITSA Repayments Viewer"),
+          "FORBIDDEN",
+          "User does not have authority to retrieve requested record."
+        )
       )
     }
 
-    "return 404 NOT_FOUND with correct error message when UTR is not found" in {
+    "return 404 NOT_FOUND with correct error response when UTR is not found" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipUtrNotFound, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.NOT_FOUND
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Identifier not found."
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse(
+          "HoD",
+          Some("ITSA Repayments Viewer"),
+          "NOT_FOUND",
+          "Identifier not found."
+        )
       )
     }
 
-    "return 422 UNPROCESSABLE_ENTITY with correct error message for invalid UTR" in {
+    "return 422 UNPROCESSABLE_ENTITY with correct error response for invalid UTR" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipUtrInvalid, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.UNPROCESSABLE_ENTITY
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Invalid utr entered."
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse("HoD", Some("ITSA Repayments Viewer"), "48003", "Invalid UTR entered.")
       )
     }
 
-    "return 500 INTERNAL_SERVER_ERROR with correct error message for general internal server errors" in {
+    "return 500 INTERNAL_SERVER_ERROR with correct error response for general internal server errors" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipServerError, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
-      contentAsJson(result) shouldBe Json.obj("message" -> "Internal server error.")
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse("HIP", None, "SERVER_ERROR", "Internal server error.")
+      )
     }
 
-    "return 502 BAD_GATEWAY with correct error message for service communication errors" in {
+    "return 502 BAD_GATEWAY with correct error response for service communication errors" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipExternalServiceError, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.BAD_GATEWAY
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Error communicating with external service."
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse(
+          "HoD",
+          Some("SA Balance and Transaction details"),
+          "BAD_GATEWAY",
+          "Error communicating with external service."
+        )
       )
     }
 
-    "return 503 SERVICE_UNAVAILABLE with correct error message when service unavailable" in {
+    "return 503 SERVICE_UNAVAILABLE with correct error response when service unavailable" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipServiceUnavailable, validFromDate, validToDate)(
           fakeRequest
         )
       status(result) shouldBe Status.SERVICE_UNAVAILABLE
-      contentAsJson(result) shouldBe Json.obj("message" -> "Service unavailable")
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
+      )
     }
   }
+}
+
+private def createErrorResponse(
+    origin: String,
+    service: Option[String],
+    errorType: String,
+    reason: String
+): HipResponseError = {
+  HipResponseError(
+    origin = origin,
+    service = service,
+    response = HipErrorDetails(
+      failures = List(HipError(errorType, reason))
+    )
+  )
 }
 object HipControllerSpec {
 
