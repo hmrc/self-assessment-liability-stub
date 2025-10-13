@@ -40,7 +40,7 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
     logger.info(message)
     Action.async { implicit request =>
       utr match {
-        case u if u == badUtrHipInvalidCorrelationId.toLowerCase =>
+        case u if u == badUtrHipInvalidCorrelationId =>
           val error = createErrorResponse(
             "HIP",
             None,
@@ -49,7 +49,7 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
           )
           Future.successful(BadRequest(Json.toJson(error)))
 
-        case u if u == badUtrHipUnauthorised.toLowerCase =>
+        case u if u == badUtrHipUnauthorised =>
           val error = createErrorResponse(
             "HIP",
             None,
@@ -58,7 +58,7 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
           )
           Future.successful(Unauthorized(Json.toJson(error)))
 
-        case u if u == badUtrHipForbidden.toLowerCase =>
+        case u if u == badUtrHipForbidden =>
           val error = createErrorResponse(
             "HoD",
             Some("ITSA Repayments Viewer"),
@@ -67,7 +67,7 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
           )
           Future.successful(Forbidden(Json.toJson(error)))
 
-        case u if u == badUtrHipUtrNotFound.toLowerCase =>
+        case u if u == badUtrHipUtrNotFound =>
           val error = createErrorResponse(
             "HoD",
             Some("ITSA Repayments Viewer"),
@@ -76,7 +76,7 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
           )
           Future.successful(NotFound(Json.toJson(error)))
 
-        case u if u == badUtrHipUtrInvalid.toLowerCase =>
+        case u if u == badUtrHipUtrInvalid =>
           val error = createErrorResponse(
             "HoD",
             Some("ITSA Repayments Viewer"),
@@ -85,11 +85,11 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
           )
           Future.successful(UnprocessableEntity(Json.toJson(error)))
 
-        case u if u == badUtrHipServerError.toLowerCase =>
+        case u if u == badUtrHipServerError =>
           val error = createErrorResponse("HIP", None, "SERVER_ERROR", "Internal server error.")
           Future.successful(InternalServerError(Json.toJson(error)))
 
-        case u if u == badUtrHipExternalServiceError.toLowerCase =>
+        case u if u == badUtrHipExternalServiceError =>
           val error = createErrorResponse(
             "HoD",
             Some("SA Balance and Transaction details"),
@@ -98,7 +98,7 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
           )
           Future.successful(BadGateway(Json.toJson(error)))
 
-        case u if u == badUtrHipServiceUnavailable.toLowerCase =>
+        case u if u == badUtrHipServiceUnavailable =>
           val error = createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
           Future.successful(ServiceUnavailable(Json.toJson(error)))
         case _ =>
