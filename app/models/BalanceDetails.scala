@@ -29,7 +29,17 @@ case class BalanceDetails(
     totalBalance: BigDecimal,
     totalCreditAvailable: BigDecimal,
     codedOutDetail: List[CodedOutDetail]
-)
+) {
+  require(
+    totalOverdueBalance >= 0 &&
+      totalPayableBalance >= 0 &&
+      totalPendingBalance >= 0 &&
+      totalCreditAvailable >= 0 &&
+      totalBalance >= 0 &&
+      (totalPayableBalance == 0 || earliestPayableDueDate.isDefined) &&
+      (totalPendingBalance == 0 || earliestPendingDueDate.isDefined)
+  )
+}
 
 object BalanceDetails {
   implicit val format: OFormat[BalanceDetails] = Json.format[BalanceDetails]

@@ -16,7 +16,7 @@
 
 package controllers
 
-import models.{HipError, HipErrorDetails, HipResponse, HipResponseError}
+import models.{BalanceDetails, HipError, HipErrorDetails, HipResponse, HipResponseError}
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -101,6 +101,26 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
         case u if u == badUtrHipServiceUnavailable =>
           val error = createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
           Future.successful(ServiceUnavailable(Json.toJson(error)))
+
+        case u if u == badUtrHipInternalServiceError =>
+          val hipResponse: HipResponse = HipResponse(
+            balanceDetails = BalanceDetails(
+              totalOverdueBalance = 0,
+              totalPayableBalance = 100,
+              earliestPayableDueDate = None,
+              totalPendingBalance = 100,
+              earliestPendingDueDate = None,
+              totalBalance = 200,
+              totalCreditAvailable = 0,
+              codedOutDetail = List.empty
+            ),
+            chargeDetails = List.empty,
+            refundDetails = List.empty,
+            paymentHistoryDetails = List.empty
+          )
+          val json = Json.toJson(hipResponse)
+          Future.successful(Ok(json))
+
         case _ =>
           try {
             val hipResponse: HipResponse = service.generateHipResponse(dateFrom, dateTo)
