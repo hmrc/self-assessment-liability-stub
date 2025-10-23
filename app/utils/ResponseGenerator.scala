@@ -36,7 +36,15 @@ object ResponseGenerator extends Logging {
   private def dateGenerator(year: Int): LocalDate = {
     val randomStatementMonths = random.shuffle(List(4, 10)).head
     val randomStatementDays = random.nextInt(29) + 1
-    LocalDate.of(year, randomStatementMonths, randomStatementDays)
+    val defaultDate = LocalDate.of(year, randomStatementMonths, randomStatementDays)
+
+    if (year < today.getYear) {
+      defaultDate
+    } else if (year == today.getYear) {
+      if (defaultDate.isAfter(today)) today else defaultDate
+    } else {
+      today
+    }
   }
 
   def generateResponse(fromDate: LocalDate, toDate: LocalDate): HipResponse = {
@@ -211,12 +219,13 @@ object ResponseGenerator extends Logging {
 
   private def generatePaymentHistory(paymentDate: LocalDate): PaymentHistoryDetails = {
     val paymentAmount = BigDecimal(random.between(500, 50000))
+    val paymentDateFilter = paymentDate.plusDays(random.nextInt(6))
     PaymentHistoryDetails(
       paymentAmount = paymentAmount,
       paymentReference = generateId(),
       paymentMethod = Some(randomPaymentMethod),
       paymentDate = paymentDate,
-      processedDate = Some(paymentDate.plusDays(random.nextInt(6))),
+      processedDate = Some(if (paymentDateFilter.isAfter(today)) today else paymentDateFilter),
       allocationReference = List(generateId())
     )
   }
