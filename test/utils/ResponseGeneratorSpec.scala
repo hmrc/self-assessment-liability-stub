@@ -266,7 +266,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       )
 
       val (emptyResult, remainingCredit1) =
-        ResponseGenerator.allocateCredit(BigDecimal(500.00), List.empty)
+        creditUtils.allocateCredit(BigDecimal(500.00), List.empty)
       emptyResult shouldBe empty
       remainingCredit1 shouldBe BigDecimal(500.00)
 
@@ -274,7 +274,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         overdueCharge.copy(chargeId = "EFG23456", outstandingAmount = BigDecimal(300.00))
 
       val (partialResult, remainingCredit3) =
-        ResponseGenerator.allocateCredit(BigDecimal(200.00), List(singleCharge))
+        creditUtils.allocateCredit(BigDecimal(200.00), List(singleCharge))
       val partialCharge = partialResult.head
       partialCharge.outstandingAmount shouldBe BigDecimal(100.00)
       partialCharge.amendments should have size 1
@@ -284,7 +284,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       val freshCharge =
         singleCharge.copy(chargeId = "HIJ45678", outstandingAmount = BigDecimal(300.00))
       val (excessResult, remainingCredit4) =
-        ResponseGenerator.allocateCredit(BigDecimal(500.00), List(freshCharge, singleCharge))
+        creditUtils.allocateCredit(BigDecimal(500.00), List(freshCharge, singleCharge))
       excessResult.map(_.outstandingAmount).sum shouldBe BigDecimal(100.00)
       excessResult.map(_.amendments.map(_.amendmentAmount).sum).sum shouldBe BigDecimal(500.00)
       remainingCredit4 shouldBe BigDecimal(0.00)
