@@ -20,7 +20,6 @@ import models.*
 import play.api.Logging
 
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
 import scala.util.Random
 
@@ -74,38 +73,6 @@ object ResponseGenerator extends Logging {
       allChargesWithRefundAllocated._1,
       allRefunds,
       allPaymentHistory
-    )
-  }
-
-  inline def isFutureDate(date: LocalDate): Boolean = date.isAfter(today)
-
-  def getOverdueOrFutureCharges(charges: List[ChargeDetails]): Option[ChargeDetails] = {
-    val overdueChargesWithOutstanding = charges.filter { charge =>
-      charge.dueDate.isBefore(today) && charge.outstandingAmount > BigDecimal(0)
-    }
-
-    if (overdueChargesWithOutstanding.nonEmpty) {
-      overdueChargesWithOutstanding.toSet.minByOption(_.dueDate)
-    } else {
-      charges
-        .filter(charge =>
-          charge.amendments.isEmpty &&
-            charge.outstandingAmount > BigDecimal(0)
-        )
-        .minByOption(_.dueDate)
-    }
-  }
-
-  def calculateInterestDue(
-      dueDate: LocalDate,
-      outstandingAmount: BigDecimal
-  ): Option[BigDecimal] = {
-    Some(
-      roundValue(
-        outstandingAmount * (BigDecimal(
-          ChronoUnit.MONTHS.between(dueDate.plusMonths(1), today)
-        ) / BigDecimal(12)) * BigDecimal(0.05)
-      )
     )
   }
 

@@ -31,7 +31,7 @@ object creditUtils {
     if (creditAvailable <= BigDecimal(0)) {
       (charges, creditAvailable)
     } else {
-      ResponseGenerator.getOverdueOrFutureCharges(charges) match {
+      getOverdueOrFutureCharges(charges) match {
         case None =>
           (charges, creditAvailable)
         case Some(eligibleCharge) =>
@@ -77,5 +77,22 @@ object creditUtils {
       )
 
     charge.copy(amendments = charge.amendments :+ amendment, outstandingAmount = remainingBalance)
+  }
+
+  private def getOverdueOrFutureCharges(charges: List[ChargeDetails]): Option[ChargeDetails] = {
+    val overdueChargesWithOutstanding = charges.filter { charge =>
+      charge.dueDate.isBefore(today) && charge.outstandingAmount > BigDecimal(0)
+    }
+
+    if (overdueChargesWithOutstanding.nonEmpty) {
+      overdueChargesWithOutstanding.toSet.minByOption(_.dueDate)
+    } else {
+      charges
+        .filter(charge =>
+          charge.amendments.isEmpty &&
+            charge.outstandingAmount > BigDecimal(0)
+        )
+        .minByOption(_.dueDate)
+    }
   }
 }

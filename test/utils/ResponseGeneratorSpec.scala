@@ -16,7 +16,7 @@
 
 package utils
 
-import models.{Amendment, ChargeDetails, HipResponse}
+import models.{Amendment, ChargeDetails, HipResponse, PaymentHistoryDetails}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -247,7 +247,33 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         balanceDetails.earliestPendingDueDate shouldBe None
       }
     }
+    "generate a response from current year provided" in {
+      val hipResponse: HipResponse = ResponseGenerator.generateResponse(today.minusDays(30), today)
+
+      hipResponse.chargeDetails should not be empty
+      hipResponse.paymentHistoryDetails should not be empty
+      hipResponse.chargeDetails.map { charge =>
+        charge.creationDate.getYear should (be >= 2025 and be <= 2026)
+        hipResponse.paymentHistoryDetails.foreach { payments =>
+          payments.paymentDate.getYear should (be >= 2025 and be <= 2026)
+        }
+      }
+    }
+
+    "generate a response from future date provided" in {
+      val hipResponse: HipResponse = ResponseGenerator.generateResponse(today, today.plusDays(30))
+
+      hipResponse.chargeDetails should not be empty
+      hipResponse.paymentHistoryDetails should not be empty
+      hipResponse.chargeDetails.map { charge =>
+        charge.creationDate.getYear should (be >= 2025 and be <= 2026)
+        hipResponse.paymentHistoryDetails.foreach { payments =>
+          payments.paymentDate.getYear should (be >= 2025 and be <= 2026)
+        }
+      }
+    }
   }
+
   "allocateCredit method" should {
     "handle comprehensive credit allocation scenarios" in {
       val overdueCharge = ChargeDetails(
@@ -292,7 +318,235 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
       excessResult
         .map(_.amendments.map(_.amendmentReason).contains("Credit applied from overpayment"))
         .size shouldBe 2
+
+      val overdueZeroOutstanding = overdueCharge.copy(
+        chargeId = "ZBC12345",
+        dueDate = today.minusDays(10),
+        outstandingAmount = BigDecimal(0.00),
+        amendments = List.empty
+      )
+
+      val futureEligible = overdueCharge.copy(
+        chargeId = "NBC12345",
+        dueDate = today.plusDays(10),
+        outstandingAmount = BigDecimal(150.00),
+        amendments = List.empty
+      )
+
+      val (futureAllocResult, futureAllocRemaining) =
+        creditUtils.allocateCredit(BigDecimal(100.00), List(overdueZeroOutstanding, futureEligible))
+
+      futureAllocRemaining shouldBe BigDecimal(0.00)
+      val updatedFuture = futureAllocResult.find(_.chargeId == "NBC12345").get
+      updatedFuture.outstandingAmount shouldBe BigDecimal(50.00)
+      updatedFuture.amendments should have size 1
+      updatedFuture.amendments.head.amendmentAmount shouldBe BigDecimal(100.00)
+
+      futureAllocResult.find(_.chargeId == "ZBC12345").get.outstandingAmount shouldBe BigDecimal(
+        0.00
+      )
+
     }
   }
 
+  "allocateCreditToOutstandingCharges method" should {
+    "No allocation if the totalCreditAvailable less than 0" in {
+
+      val charges = List(
+        ChargeDetails(
+          chargeId = "ABC12345",
+          creationDate = today.minusDays(10),
+          chargeType = "ITSA",
+          chargeAmount = BigDecimal(150),
+          outstandingAmount = BigDecimal(100),
+          taxYear = "2024-25",
+          dueDate = today.minusDays(11),
+          outstandingInterestDue = None,
+          accruingInterest = None,
+          accruingInterestPeriod = None,
+          accruingInterestRate = None,
+          amendments = Nil
+        )
+      )
+
+      val payments = paymentUtils.generatePaymentHistory(today.minusDays(10))
+      val paymentWithoutProcessed = List(payments.copy(paymentAmount = 100))
+
+      val refunds = Nil
+
+      val (updatedCharges, remainingCredit) = creditUtils.allocateCreditToOutstandingCharges(
+        charges,
+        paymentWithoutProcessed,
+        refunds
+      )
+
+      updatedCharges shouldBe charges
+    }
+    "automatically allocateCredit if the totalCreditAvailable greater than 0" in {
+      val charges = List(
+        ChargeDetails(
+          chargeId = "ABC12345",
+          creationDate = today.minusDays(10),
+          chargeType = "ITSA",
+          chargeAmount = BigDecimal(150),
+          outstandingAmount = BigDecimal(100),
+          taxYear = "2024-25",
+          dueDate = today.minusDays(11),
+          outstandingInterestDue = None,
+          accruingInterest = None,
+          accruingInterestPeriod = None,
+          accruingInterestRate = None,
+          amendments = Nil
+        )
+      )
+
+      val payments = paymentUtils.generatePaymentHistory(today.minusDays(10))
+      val paymentWithoutProcessed = List(payments.copy(paymentAmount = 200))
+
+      val refunds = Nil
+
+      val (updatedCharges, remainingCredit) = creditUtils.allocateCreditToOutstandingCharges(
+        charges,
+        paymentWithoutProcessed,
+        refunds
+      )
+      val (allocatedCharges, creditsAllocated) =
+        creditUtils.allocateCredit(remainingCredit, updatedCharges)
+
+      updatedCharges shouldBe allocatedCharges
+    }
+  }
+
+  "generateCharge method" should {
+
+    "return an empty list when there are no payments" in {
+      val result = chargesUtils.generateCharge(Nil)
+      result shouldBe Nil
+    }
+    "generate a charge for a single payment" in {
+      val payments = paymentUtils.generatePaymentHistory(today.minusDays(10))
+
+      val result = chargesUtils.generateCharge(List(payments))
+      result.size shouldBe 1
+      val charge = result.head
+
+      charge.creationDate.isAfter(payments.paymentDate.minusDays(16)) shouldBe true
+      charge.creationDate.isBefore(payments.paymentDate.minusDays(9)) shouldBe true
+
+      charge.outstandingAmount shouldEqual charge.chargeAmount
+
+      charge.chargeAmount shouldBe >=(BigDecimal(0))
+      charge.outstandingAmount shouldBe >=(BigDecimal(0))
+    }
+    "generate a charge for multiple payments" in {
+
+      val payments = List(
+        paymentUtils.generatePaymentHistory(today.minusDays(5)),
+        paymentUtils.generatePaymentHistory(today.minusDays(50)),
+        paymentUtils.generatePaymentHistory(today.minusDays(1))
+      )
+
+      val result = chargesUtils.generateCharge(payments)
+      result.size shouldBe payments.size
+    }
+    "apply not recent statement logic where paymentDate before today - 45" in {
+      val payments =
+        paymentUtils.generatePaymentHistory(today.minusDays(46))
+
+      val result = chargesUtils.generateCharge(List(payments))
+      val charge = result.head
+
+      val amendmentAmount =
+        if (charge.chargeAmount < payments.paymentAmount) charge.chargeAmount
+        else payments.paymentAmount
+
+      charge.outstandingAmount shouldBe >=(BigDecimal(0))
+      charge.outstandingAmount shouldBe <=(charge.chargeAmount)
+
+      if (charge.chargeAmount > 0 && amendmentAmount > 0) {
+        charge.outstandingAmount shouldBe <(charge.chargeAmount)
+      }
+    }
+    "treat paymentDate exactly today - 45 as recent (edge case)" in {
+      val payments = paymentUtils.generatePaymentHistory(today.minusDays(45))
+
+      val result = chargesUtils.generateCharge(List(payments))
+      val charge = result.head
+
+      charge.outstandingAmount shouldEqual charge.chargeAmount
+    }
+
+    "use paymentDate + 6 when processedDate is missing" in {
+      val payments = paymentUtils.generatePaymentHistory(today.minusDays(46))
+      val paymentWithoutProcessed = payments.copy(processedDate = None)
+
+      val result = chargesUtils.generateCharge(List(paymentWithoutProcessed))
+      val charge = result.head
+
+      charge.amendments.nonEmpty shouldBe true
+
+      val amendDate =
+        charge.amendments.headOption
+          .map(_.amendmentDate)
+          .getOrElse(fail("Expected at least one amendment"))
+
+      amendDate shouldEqual paymentWithoutProcessed.paymentDate.plusDays(6)
+    }
+    "generate chargeId randomly when allocationReference is empty" in {
+      val payments = paymentUtils.generatePaymentHistory(today.minusDays(10))
+      val paymentWithoutRef = payments.copy(allocationReference = Nil)
+
+      val result = chargesUtils.generateCharge(List(paymentWithoutRef))
+      val charge = result.head
+
+      charge.chargeId should not be empty
+    }
+  }
+  "calculateInterestOrGenerateRefund method" should {
+    "return empty list when both inputs are empty" in {
+      val result = refundUtils.calculateInterestOrGenerateRefund(
+        charges = List.empty[ChargeDetails],
+        payments = List.empty[PaymentHistoryDetails]
+      )
+
+      result._1.isEmpty shouldBe true
+      result._2.isEmpty shouldBe true
+    }
+    "apply interest and produce no refunds when payments are less then charges in a year" in {
+      val charges = List(
+        ChargeDetails(
+          chargeId = "ABC12345",
+          creationDate = today.minusMonths(6),
+          chargeType = "ITSA",
+          chargeAmount = BigDecimal(200.00),
+          taxYear = "2023-2024",
+          dueDate = today.minusMonths(3),
+          amendments = List.empty,
+          outstandingAmount = BigDecimal(1000.00),
+          outstandingInterestDue = None,
+          accruingInterest = None,
+          accruingInterestPeriod = None,
+          accruingInterestRate = None
+        )
+      )
+
+      val payments = List(
+        PaymentHistoryDetails(
+          paymentAmount = BigDecimal(100.00),
+          paymentReference = "payment-123",
+          paymentMethod = Some("bank transfer"),
+          paymentDate = today.minusMonths(6),
+          processedDate = Some(today.minusMonths(6).plusDays(6)),
+          allocationReference = List("charge-123")
+        )
+      )
+
+      val (updatedCharges, refunds) =
+        refundUtils.calculateInterestOrGenerateRefund(charges, payments)
+
+      refunds.isEmpty shouldBe true
+      updatedCharges.size shouldBe charges.size
+      updatedCharges.map(_.chargeId).toSet shouldBe charges.map(_.chargeId).toSet
+    }
+  }
 }

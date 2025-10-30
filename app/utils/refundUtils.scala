@@ -17,7 +17,7 @@
 package utils
 
 import models.{AccruingInterestPeriod, ChargeDetails, PaymentHistoryDetails, RefundDetails}
-import utils.ResponseGenerator.{dateFormatter, random, randomPaymentMethod, today}
+import utils.ResponseGenerator.{dateFormatter, random, randomPaymentMethod, roundValue, today}
 
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -51,6 +51,8 @@ object refundUtils {
     (updatedChargesWithRefunds.flatMap(_._1), updatedChargesWithRefunds.flatMap(_._2))
   }
 
+  private inline def isFutureDate(date: LocalDate): Boolean = date.isAfter(today)
+
   private def generateRefundDetailsModel(
       refundDate: LocalDate,
       requestDate: LocalDate,
@@ -59,10 +61,9 @@ object refundUtils {
       interest: BigDecimal
   ): RefundDetails = {
     RefundDetails(
-      refundDate = if ResponseGenerator.isFutureDate(refundDate) then None else Some(refundDate),
+      refundDate = if isFutureDate(refundDate) then None else Some(refundDate),
       refundMethod = Some(randomPaymentMethod),
-      refundRequestDate =
-        if ResponseGenerator.isFutureDate(requestDate) then None else Some(requestDate),
+      refundRequestDate = if isFutureDate(requestDate) then None else Some(requestDate),
       refundRequestAmount = surplus,
       refundDescription = Some(
         s"Surplus calculated for overpayment(s) made up to ${mostRecentPaymentDate.format(dateFormatter)}"
@@ -92,13 +93,11 @@ object refundUtils {
   }
 
   private def calculateInterest(charge: ChargeDetails): ChargeDetails = {
-    if (
-      ResponseGenerator.isFutureDate(charge.dueDate.plusMonths(1)) || charge.outstandingAmount == 0
-    ) {
+    if (isFutureDate(charge.dueDate.plusMonths(1)) || charge.outstandingAmount == 0) {
       charge
     } else {
       val interest =
-        ResponseGenerator.calculateInterestDue(charge.dueDate, charge.outstandingAmount)
+        calculateInterestDue(charge.dueDate, charge.outstandingAmount)
 
       charge.copy(
         outstandingAmount = charge.outstandingAmount + interest.getOrElse(0.0),
@@ -121,6 +120,19 @@ object refundUtils {
     } else {
       LocalDate.ofYearDay(year, today.getDayOfYear)
     }
+  }
+
+  private def calculateInterestDue(
+      dueDate: LocalDate,
+      outstandingAmount: BigDecimal
+  ): Option[BigDecimal] = {
+    Some(
+      roundValue(
+        outstandingAmount * (BigDecimal(
+          ChronoUnit.MONTHS.between(dueDate.plusMonths(1), today)
+        ) / BigDecimal(12)) * BigDecimal(0.05)
+      )
+    )
   }
 
 }
