@@ -24,6 +24,7 @@ import services.HipService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.constants.RequestResponseConstants.*
 
+import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -120,7 +121,24 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
           )
           val json = Json.toJson(hipResponse)
           Future.successful(Ok(json))
-
+        case u if u == goodUtrHipInternalService =>
+          val hipResponse: HipResponse = HipResponse(
+            balanceDetails = BalanceDetails(
+              totalOverdueBalance = 0,
+              totalPayableBalance = 100,
+              earliestPayableDueDate = Some(LocalDate.of(2024, 2, 15)),
+              totalPendingBalance = 100,
+              earliestPendingDueDate = Some(LocalDate.of(2024, 7, 15)),
+              totalBalance = 200,
+              totalCreditAvailable = 0,
+              codedOutDetail = List.empty
+            ),
+            chargeDetails = List.empty,
+            refundDetails = List.empty,
+            paymentHistoryDetails = List.empty
+          )
+          val json = Json.toJson(hipResponse)
+          Future.successful(Ok(json))
         case _ =>
           try {
             val hipResponse: HipResponse = service.generateHipResponse(dateFrom, dateTo)
