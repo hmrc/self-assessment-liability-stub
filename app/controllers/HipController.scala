@@ -126,9 +126,9 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
             balanceDetails = BalanceDetails(
               totalOverdueBalance = 0,
               totalPayableBalance = 100,
-              earliestPayableDueDate = Some(LocalDate.of(2024, 2, 15)),
+              earliestPayableDueDate = Some(LocalDate.of(2026, 2, 15)),
               totalPendingBalance = 100,
-              earliestPendingDueDate = Some(LocalDate.of(2024, 7, 15)),
+              earliestPendingDueDate = Some(LocalDate.of(2026, 7, 15)),
               totalBalance = 200,
               totalCreditAvailable = 0,
               codedOutDetail = List.empty
