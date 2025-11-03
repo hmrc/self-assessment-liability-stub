@@ -21,7 +21,7 @@ import utils.ResponseGenerator.{random, roundValue, today}
 
 import java.time.LocalDate
 
-object chargesUtils {
+object ChargesUtils {
   private val randomChargeType = {
     random.shuffle(List("ITSA", "Penalty", "PAYE", "POA")).head
   }

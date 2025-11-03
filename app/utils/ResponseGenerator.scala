@@ -50,11 +50,11 @@ object ResponseGenerator extends Logging {
     val records = (fromDate.getYear to toDate.getYear).map { year =>
       val numberOfStatementsPerYear = random.nextInt(2) + 1
       val payments = (1 to numberOfStatementsPerYear)
-        .map(_ => paymentUtils.generatePaymentHistory(dateGenerator(year)))
+        .map(_ => PaymentUtils.generatePaymentHistory(dateGenerator(year)))
         .toList
-      val charges = chargesUtils.generateCharge(payments)
+      val charges = ChargesUtils.generateCharge(payments)
       val updatedChargesWithRefunds =
-        refundUtils.calculateInterestOrGenerateRefund(charges, payments)
+        RefundUtils.calculateInterestOrGenerateRefund(charges, payments)
       (updatedChargesWithRefunds._1, payments, updatedChargesWithRefunds._2)
     }
 
@@ -62,7 +62,7 @@ object ResponseGenerator extends Logging {
     val allPaymentHistory = records.flatMap(_._2).toList
     val allRefunds = records.flatMap(_._3).toList
     val allChargesWithRefundAllocated =
-      creditUtils.allocateCreditToOutstandingCharges(allCharges, allPaymentHistory, allRefunds)
+      CreditUtils.allocateCreditToOutstandingCharges(allCharges, allPaymentHistory, allRefunds)
     val balanceDetails = generateBalanceDetails(
       allChargesWithRefundAllocated._1,
       allChargesWithRefundAllocated._2

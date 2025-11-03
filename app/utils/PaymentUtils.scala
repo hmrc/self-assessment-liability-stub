@@ -21,7 +21,7 @@ import utils.ResponseGenerator.{random, randomPaymentMethod, today}
 
 import java.time.LocalDate
 
-object paymentUtils {
+object PaymentUtils {
 
   def generatePaymentHistory(paymentDate: LocalDate): PaymentHistoryDetails = {
     val paymentAmount = BigDecimal(random.between(500, 50000))

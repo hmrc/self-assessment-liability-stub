@@ -21,7 +21,7 @@ import utils.ResponseGenerator.{random, roundValue, today}
 
 import scala.annotation.tailrec
 
-object creditUtils {
+object CreditUtils {
 
   @tailrec
   def allocateCredit(

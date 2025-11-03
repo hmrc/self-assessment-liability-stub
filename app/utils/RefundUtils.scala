@@ -22,7 +22,7 @@ import utils.ResponseGenerator.{dateFormatter, random, randomPaymentMethod, roun
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-object refundUtils {
+object RefundUtils {
 
   def calculateInterestOrGenerateRefund(
       charges: List[ChargeDetails],
@@ -83,7 +83,7 @@ object refundUtils {
     val interest =
       (BigDecimal(ChronoUnit.DAYS.between(requestDate, requestDate)) / BigDecimal(28)) *
         BigDecimal(0.001) * surplus
-    refundUtils.generateRefundDetailsModel(
+    RefundUtils.generateRefundDetailsModel(
       refundDate,
       requestDate,
       surplus,
