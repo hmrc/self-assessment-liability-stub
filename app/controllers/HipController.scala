@@ -22,12 +22,13 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import services.HipService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.ResponseGenerator.today
 import utils.constants.RequestResponseConstants.*
 
-import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
+import scala.util.Random
 
 @Singleton()
 class HipController @Inject() (cc: ControllerComponents, service: HipService)
@@ -126,9 +127,9 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
             balanceDetails = BalanceDetails(
               totalOverdueBalance = 0,
               totalPayableBalance = 100,
-              earliestPayableDueDate = Some(LocalDate.of(2026, 2, 15)),
+              earliestPayableDueDate = Some(today.plusDays(Random.nextInt(30))),
               totalPendingBalance = 100,
-              earliestPendingDueDate = Some(LocalDate.of(2026, 7, 15)),
+              earliestPendingDueDate = Some(today.plusDays(31 + Random.nextInt(150))),
               totalBalance = 200,
               totalCreditAvailable = 0,
               codedOutDetail = List.empty
