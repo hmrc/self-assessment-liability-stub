@@ -31,7 +31,7 @@ object ResponseGenerator extends Logging {
   private val randomPaymentMethod =
     random.shuffle(List("bank transfer", "card", "direct debit", "cheque")).head
   private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-  private val today: LocalDate = ZonedDateTime.now(ZoneOffset.UTC).toLocalDate
+  val today: LocalDate = ZonedDateTime.now(ZoneOffset.UTC).toLocalDate
 
   private def dateGenerator(year: Int): LocalDate = {
     val randomStatementMonths = random.shuffle(List(4, 10)).head
