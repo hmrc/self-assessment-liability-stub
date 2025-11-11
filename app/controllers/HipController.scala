@@ -16,17 +16,19 @@
 
 package controllers
 
-import models.{HipError, HipErrorDetails, HipResponse, HipResponseError}
+import models.{BalanceDetails, HipError, HipErrorDetails, HipResponse, HipResponseError}
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import services.HipService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.ResponseGenerator.today
 import utils.constants.RequestResponseConstants.*
 
 import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
+import scala.util.Random
 
 @Singleton()
 class HipController @Inject() (cc: ControllerComponents, service: HipService)
@@ -101,6 +103,43 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
         case u if u == badUtrHipServiceUnavailable =>
           val error = createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
           Future.successful(ServiceUnavailable(Json.toJson(error)))
+
+        case u if u == badUtrHipInternalServiceError =>
+          val hipResponse: HipResponse = HipResponse(
+            balanceDetails = BalanceDetails(
+              totalOverdueBalance = 0,
+              totalPayableBalance = 100,
+              earliestPayableDueDate = None,
+              totalPendingBalance = 100,
+              earliestPendingDueDate = None,
+              totalBalance = 200,
+              totalCreditAvailable = 0,
+              codedOutDetail = List.empty
+            ),
+            chargeDetails = List.empty,
+            refundDetails = List.empty,
+            paymentHistoryDetails = List.empty
+          )
+          val json = Json.toJson(hipResponse)
+          Future.successful(Ok(json))
+        case u if u == goodUtrHipInternalService =>
+          val hipResponse: HipResponse = HipResponse(
+            balanceDetails = BalanceDetails(
+              totalOverdueBalance = 0,
+              totalPayableBalance = 100,
+              earliestPayableDueDate = Some(today.plusDays(Random.nextInt(30))),
+              totalPendingBalance = 100,
+              earliestPendingDueDate = Some(today.plusDays(31 + Random.nextInt(150))),
+              totalBalance = 200,
+              totalCreditAvailable = 0,
+              codedOutDetail = List.empty
+            ),
+            chargeDetails = List.empty,
+            refundDetails = List.empty,
+            paymentHistoryDetails = List.empty
+          )
+          val json = Json.toJson(hipResponse)
+          Future.successful(Ok(json))
         case _ =>
           try {
             val hipResponse: HipResponse = service.generateHipResponse(dateFrom, dateTo)

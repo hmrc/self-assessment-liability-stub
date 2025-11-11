@@ -50,6 +50,34 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       contentAsJson(result) shouldBe Json.toJson(sampleHipResponse)
     }
 
+    "return 200 with incorrectly formatted details for earliestPayableDueDate and earliestPendingDueDate" in {
+      val result =
+        controller.getSelfAssessmentData(badUtrHipInternalServiceError, validFromDate, validToDate)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.OK
+      val json = contentAsJson(result)
+      (json \ "balanceDetails" \ "earliestPayableDueDate").asOpt[String] shouldBe None
+      (json \ "balanceDetails" \ "earliestPendingDueDate").asOpt[String] shouldBe None
+
+      (json \ "balanceDetails" \ "totalPayableBalance").as[Int] should be > 0
+      (json \ "balanceDetails" \ "totalPendingBalance").as[Int] should be > 0
+    }
+
+    "return 200 with correctly formatted details for earliestPayableDueDate and earliestPendingDueDate" in {
+      val result =
+        controller.getSelfAssessmentData(goodUtrHipInternalService, validFromDate, validToDate)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.OK
+      val json = contentAsJson(result)
+      (json \ "balanceDetails" \ "earliestPayableDueDate").asOpt[String] should not be None
+      (json \ "balanceDetails" \ "earliestPendingDueDate").asOpt[String] should not be None
+
+      (json \ "balanceDetails" \ "totalPayableBalance").as[Int] should be > 0
+      (json \ "balanceDetails" \ "totalPendingBalance").as[Int] should be > 0
+    }
+
     "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipInvalidCorrelationId, validFromDate, validToDate)(
