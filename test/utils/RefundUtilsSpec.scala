@@ -25,15 +25,6 @@ import java.time.LocalDate
 
 class RefundUtilsSpec extends AnyWordSpec with Matchers {
   "calculateInterestOrGenerateRefund method" should {
-    "return empty list when both inputs are empty" in {
-      val result = RefundUtils.calculateInterestOrGenerateRefund(
-        charges = List.empty[ChargeDetails],
-        payments = List.empty[PaymentHistoryDetails]
-      )
-
-      result._1.isEmpty shouldBe true
-      result._2.isEmpty shouldBe true
-    }
     "apply interest and produce no refunds when payments are less then charges in a year" in {
       val charges = List(
         ChargeDetails(

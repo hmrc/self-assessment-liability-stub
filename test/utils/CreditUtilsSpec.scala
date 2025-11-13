@@ -100,6 +100,53 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
       )
 
     }
+
+    "recursively allocate credit from overdue to future charges" in {
+      val overdueCharge = ChargeDetails(
+        chargeId = "ABC12345",
+        creationDate = today.minusMonths(2),
+        chargeType = "ITSA",
+        chargeAmount = BigDecimal(50),
+        taxYear = "2023-2024",
+        dueDate = today.minusDays(15),
+        amendments = List.empty,
+        outstandingAmount = BigDecimal(50),
+        outstandingInterestDue = None,
+        accruingInterest = None,
+        accruingInterestPeriod = None,
+        accruingInterestRate = None
+      )
+
+      val futureCharge = ChargeDetails(
+        chargeId = "DEF12345",
+        creationDate = today.minusMonths(1),
+        chargeType = "ITSA",
+        chargeAmount = BigDecimal(100),
+        taxYear = "2023-2024",
+        dueDate = today.plusDays(10),
+        amendments = List.empty,
+        outstandingAmount = BigDecimal(100),
+        outstandingInterestDue = None,
+        accruingInterest = None,
+        accruingInterestPeriod = None,
+        accruingInterestRate = None
+      )
+
+      val (result, remaining) =
+        CreditUtils.allocateCredit(BigDecimal(120), List(futureCharge, overdueCharge))
+
+      remaining shouldBe BigDecimal(0)
+
+      val updatedOverdue = result.find(_.chargeId == "ABC12345").get
+      updatedOverdue.outstandingAmount shouldBe BigDecimal(0)
+      updatedOverdue.amendments should have size 1
+      updatedOverdue.amendments.head.amendmentAmount shouldBe BigDecimal(50)
+
+      val updatedFuture = result.find(_.chargeId == "DEF12345").get
+      updatedFuture.outstandingAmount shouldBe BigDecimal(30)
+      updatedFuture.amendments should have size 1
+      updatedFuture.amendments.head.amendmentAmount shouldBe BigDecimal(70)
+    }
   }
 
   "allocateCreditToOutstandingCharges method" should {
@@ -118,14 +165,14 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
           accruingInterest = None,
           accruingInterestPeriod = None,
           accruingInterestRate = None,
-          amendments = Nil
+          amendments = List.empty
         )
       )
 
       val payments = PaymentUtils.generatePaymentHistory(today.minusDays(10))
       val paymentWithoutProcessed = List(payments.copy(paymentAmount = 100))
 
-      val refunds = Nil
+      val refunds = List.empty
 
       val (updatedCharges, remainingCredit) = CreditUtils.allocateCreditToOutstandingCharges(
         charges,
@@ -149,14 +196,14 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
           accruingInterest = None,
           accruingInterestPeriod = None,
           accruingInterestRate = None,
-          amendments = Nil
+          amendments = List.empty
         )
       )
 
       val payments = PaymentUtils.generatePaymentHistory(today.minusDays(10))
       val paymentWithoutProcessed = List(payments.copy(paymentAmount = 200))
 
-      val refunds = Nil
+      val refunds = List.empty
 
       val (updatedCharges, remainingCredit) = CreditUtils.allocateCreditToOutstandingCharges(
         charges,
