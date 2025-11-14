@@ -26,25 +26,27 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
   val fromDate: LocalDate = LocalDate.of(2023, 1, 1)
   val toDate: LocalDate = LocalDate.of(2023, 12, 31)
   val today: LocalDate = LocalDate.now()
+  val payments = PaymentHistoryDetails(
+    paymentAmount = BigDecimal(100.00),
+    paymentReference = "payment-123",
+    paymentMethod = Some("bank transfer"),
+    paymentDate = today.minusDays(46),
+    processedDate = Some(today.minusDays(40)),
+    allocationReference = List("charge-123")
+  )
 
   "generateCharge method" should {
 
     "generate a charge for a single payment" in {
-      val payments = PaymentHistoryDetails(
-        paymentAmount = BigDecimal(100.00),
-        paymentReference = "payment-123",
-        paymentMethod = Some("bank transfer"),
-        paymentDate = today.minusDays(6),
-        processedDate = Some(today),
-        allocationReference = List("charge-123")
-      )
+      val paymentsValid =
+        payments.copy(paymentDate = today.minusDays(6), processedDate = Some(today))
 
-      val result = ChargesUtils.generateCharge(List(payments))
+      val result = ChargesUtils.generateCharge(List(paymentsValid))
       result.size shouldBe 1
       val charge = result.head
 
-      charge.creationDate.isAfter(payments.paymentDate.minusDays(16)) shouldBe true
-      charge.creationDate.isBefore(payments.paymentDate.minusDays(9)) shouldBe true
+      charge.creationDate.isAfter(paymentsValid.paymentDate.minusDays(16)) shouldBe true
+      charge.creationDate.isBefore(paymentsValid.paymentDate.minusDays(9)) shouldBe true
 
       charge.outstandingAmount shouldEqual charge.chargeAmount
 
@@ -99,16 +101,9 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
       }
     }
     "apply not recent statement logic where paymentDate before today - 45" in {
-      val payments = PaymentHistoryDetails(
-        paymentAmount = BigDecimal(100.00),
-        paymentReference = "payment-123",
-        paymentMethod = Some("bank transfer"),
-        paymentDate = today.minusDays(46),
-        processedDate = Some(today.minusDays(40)),
-        allocationReference = List("charge-123")
-      )
+      val paymentsNotRecent = payments.copy(paymentDate = today.minusDays(46))
 
-      val result = ChargesUtils.generateCharge(List(payments))
+      val result = ChargesUtils.generateCharge(List(paymentsNotRecent))
       val charge = result.head
 
       val amendmentAmount =
@@ -123,31 +118,15 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
       }
     }
     "treat paymentDate exactly today - 45 as recent (edge case)" in {
-      val payments = PaymentHistoryDetails(
-        paymentAmount = BigDecimal(100.00),
-        paymentReference = "payment-123",
-        paymentMethod = Some("bank transfer"),
-        paymentDate = today.minusDays(45),
-        processedDate = Some(today.minusDays(40)),
-        allocationReference = List("charge-123")
-      )
+      val paymentsEdgeCase = payments.copy(paymentDate = today.minusDays(45))
 
-      val result = ChargesUtils.generateCharge(List(payments))
+      val result = ChargesUtils.generateCharge(List(paymentsEdgeCase))
       val charge = result.head
 
       charge.outstandingAmount shouldEqual charge.chargeAmount
     }
 
     "use paymentDate + 6 when processedDate is missing" in {
-      val payments = PaymentHistoryDetails(
-        paymentAmount = BigDecimal(100.00),
-        paymentReference = "payment-123",
-        paymentMethod = Some("bank transfer"),
-        paymentDate = today.minusDays(46),
-        processedDate = Some(today.minusDays(40)),
-        allocationReference = List("charge-123")
-      )
-
       val paymentWithoutProcessed = payments.copy(processedDate = None)
 
       val result = ChargesUtils.generateCharge(List(paymentWithoutProcessed))
@@ -163,16 +142,9 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
       amendDate shouldEqual paymentWithoutProcessed.paymentDate.plusDays(6)
     }
     "generate chargeId randomly when allocationReference is empty" in {
-      val payments = PaymentHistoryDetails(
-        paymentAmount = BigDecimal(100.00),
-        paymentReference = "payment-123",
-        paymentMethod = Some("bank transfer"),
-        paymentDate = today.minusDays(10),
-        processedDate = Some(today.minusDays(4)),
-        allocationReference = List.empty
-      )
+      val paymentsRandomChargeId = payments.copy(allocationReference = List.empty)
 
-      val result = ChargesUtils.generateCharge(List(payments))
+      val result = ChargesUtils.generateCharge(List(paymentsRandomChargeId))
       val charge = result.head
 
       charge.chargeId should not be empty

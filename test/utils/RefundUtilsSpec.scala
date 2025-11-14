@@ -24,113 +24,68 @@ import utils.ResponseGenerator.today
 import java.time.LocalDate
 
 class RefundUtilsSpec extends AnyWordSpec with Matchers {
+  val charges =
+    ChargeDetails(
+      chargeId = "ABC12345",
+      creationDate = today.minusMonths(6),
+      chargeType = "ITSA",
+      chargeAmount = BigDecimal(200.00),
+      taxYear = "2023-2024",
+      dueDate = today.minusMonths(3),
+      amendments = List.empty,
+      outstandingAmount = BigDecimal(1000.00),
+      outstandingInterestDue = None,
+      accruingInterest = None,
+      accruingInterestPeriod = None,
+      accruingInterestRate = None
+    )
+
+  val payments =
+    PaymentHistoryDetails(
+      paymentAmount = BigDecimal(100.00),
+      paymentReference = "payment-123",
+      paymentMethod = Some("bank transfer"),
+      paymentDate = today.minusMonths(6),
+      processedDate = Some(today.minusMonths(6).plusDays(6)),
+      allocationReference = List("charge-123")
+    )
   "calculateInterestOrGenerateRefund method" should {
     "apply interest to charges when outstanding amount is negative" in {
-      val charges = List(
-        ChargeDetails(
-          chargeId = "ABC12345",
-          creationDate = today.minusMonths(6),
-          chargeType = "ITSA",
-          chargeAmount = BigDecimal(200.00),
-          taxYear = "2023-2024",
-          dueDate = today.minusMonths(3),
-          amendments = List.empty,
-          outstandingAmount = BigDecimal(1000.00),
-          outstandingInterestDue = None,
-          accruingInterest = None,
-          accruingInterestPeriod = None,
-          accruingInterestRate = None
-        )
-      )
-
-      val payments = List(
-        PaymentHistoryDetails(
-          paymentAmount = BigDecimal(100.00),
-          paymentReference = "payment-123",
-          paymentMethod = Some("bank transfer"),
-          paymentDate = today.minusMonths(6),
-          processedDate = Some(today.minusMonths(6).plusDays(6)),
-          allocationReference = List("charge-123")
-        )
-      )
-
       val (updatedCharges, refunds) =
-        RefundUtils.calculateInterestOrGenerateRefund(charges, payments)
+        RefundUtils.calculateInterestOrGenerateRefund(List(charges), List(payments))
 
       refunds.isEmpty shouldBe true
-      updatedCharges.size shouldBe charges.size
-      updatedCharges.map(_.chargeId).toSet shouldBe charges.map(_.chargeId).toSet
+      updatedCharges.size shouldBe List(charges).size
+      updatedCharges.map(_.chargeId) shouldBe List(charges).map(_.chargeId)
     }
 
     "return unchanged charges when outstanding amount is zero" in {
-      val charges = List(
-        ChargeDetails(
-          chargeId = "ABC12345",
-          creationDate = today.minusMonths(6),
-          chargeType = "ITSA",
-          chargeAmount = BigDecimal(150.00),
-          taxYear = "2023-2024",
-          dueDate = today.minusMonths(3),
-          amendments = List.empty,
-          outstandingAmount = BigDecimal(1000.00),
-          outstandingInterestDue = None,
-          accruingInterest = None,
-          accruingInterestPeriod = None,
-          accruingInterestRate = None
-        )
-      )
+      val chargesOutstandingZero = List(charges.copy(chargeAmount = BigDecimal(150)))
 
-      val payments = List(
-        PaymentHistoryDetails(
-          paymentAmount = BigDecimal(150.00),
-          paymentReference = "payment-123",
-          paymentMethod = Some("bank transfer"),
-          paymentDate = today.minusMonths(6),
-          processedDate = Some(today.minusMonths(6).plusDays(6)),
-          allocationReference = List("charge-123")
-        )
-      )
+      val paymentsOutstandingZero = List(payments.copy(paymentAmount = BigDecimal(150)))
 
       val (updatedCharges, refunds) =
-        RefundUtils.calculateInterestOrGenerateRefund(charges, payments)
+        RefundUtils.calculateInterestOrGenerateRefund(
+          chargesOutstandingZero,
+          paymentsOutstandingZero
+        )
 
       refunds shouldBe empty
-      updatedCharges shouldEqual charges
+      updatedCharges shouldEqual chargesOutstandingZero
     }
 
     "generate refund when outstanding amount is positive" in {
-      val charges = List(
-        ChargeDetails(
-          chargeId = "ABC12345",
-          creationDate = today.minusMonths(6),
-          chargeType = "ITSA",
-          chargeAmount = BigDecimal(100.00),
-          taxYear = "2023-2024",
-          dueDate = today.minusMonths(3),
-          amendments = List.empty,
-          outstandingAmount = BigDecimal(1000.00),
-          outstandingInterestDue = None,
-          accruingInterest = None,
-          accruingInterestPeriod = None,
-          accruingInterestRate = None
-        )
-      )
+      val chargesPositiveOutstanding = List(charges.copy(chargeAmount = BigDecimal(100)))
 
-      val payments = List(
-        PaymentHistoryDetails(
-          paymentAmount = BigDecimal(250.00),
-          paymentReference = "payment-123",
-          paymentMethod = Some("bank transfer"),
-          paymentDate = today.minusMonths(6),
-          processedDate = Some(today.minusMonths(6).plusDays(6)),
-          allocationReference = List("charge-123")
-        )
-      )
+      val paymentsPositiveOutstanding = List(payments.copy(paymentAmount = BigDecimal(250)))
 
       val (updatedCharges, refunds) =
-        RefundUtils.calculateInterestOrGenerateRefund(charges, payments)
+        RefundUtils.calculateInterestOrGenerateRefund(
+          chargesPositiveOutstanding,
+          paymentsPositiveOutstanding
+        )
 
-      updatedCharges shouldEqual charges
+      updatedCharges shouldEqual chargesPositiveOutstanding
       refunds should have size 1
       refunds.head.refundRequestAmount shouldBe BigDecimal(150.00)
     }
