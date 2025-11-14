@@ -169,12 +169,10 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
         paymentMethod = Some("bank transfer"),
         paymentDate = today.minusDays(10),
         processedDate = Some(today.minusDays(4)),
-        allocationReference = List("charge-123")
+        allocationReference = List.empty
       )
 
-      val paymentWithoutRef = payments.copy(allocationReference = List.empty)
-
-      val result = ChargesUtils.generateCharge(List(paymentWithoutRef))
+      val result = ChargesUtils.generateCharge(List(payments))
       val charge = result.head
 
       charge.chargeId should not be empty
