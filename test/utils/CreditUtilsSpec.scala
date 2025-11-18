@@ -27,22 +27,23 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
   val toDate: LocalDate = LocalDate.of(2023, 12, 31)
   val today: LocalDate = LocalDate.now()
 
+  val overdueCharge = ChargeDetails(
+    chargeId = "ABC12345",
+    creationDate = today.minusMonths(6),
+    chargeType = "ITSA",
+    chargeAmount = BigDecimal(1000.00),
+    taxYear = "2023-2024",
+    dueDate = today.minusMonths(3),
+    amendments = List.empty,
+    outstandingAmount = BigDecimal(1000.00),
+    outstandingInterestDue = None,
+    accruingInterest = None,
+    accruingInterestPeriod = None,
+    accruingInterestRate = None
+  )
+
   "allocateCredit method" should {
     "handle comprehensive credit allocation scenarios" in {
-      val overdueCharge = ChargeDetails(
-        chargeId = "ABC12345",
-        creationDate = today.minusMonths(6),
-        chargeType = "ITSA",
-        chargeAmount = BigDecimal(1000.00),
-        taxYear = "2023-2024",
-        dueDate = today.minusMonths(3),
-        amendments = List.empty,
-        outstandingAmount = BigDecimal(1000.00),
-        outstandingInterestDue = None,
-        accruingInterest = None,
-        accruingInterestPeriod = None,
-        accruingInterestRate = None
-      )
 
       val (emptyResult, remainingCredit1) =
         CreditUtils.allocateCredit(BigDecimal(500.00), List.empty)
@@ -102,38 +103,24 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
     }
 
     "recursively allocate credit from overdue to future charges" in {
-      val overdueCharge = ChargeDetails(
-        chargeId = "ABC12345",
+
+      val lateCharge = overdueCharge.copy(
         creationDate = today.minusMonths(2),
-        chargeType = "ITSA",
         chargeAmount = BigDecimal(50),
-        taxYear = "2023-2024",
         dueDate = today.minusDays(15),
-        amendments = List.empty,
-        outstandingAmount = BigDecimal(50),
-        outstandingInterestDue = None,
-        accruingInterest = None,
-        accruingInterestPeriod = None,
-        accruingInterestRate = None
+        outstandingAmount = BigDecimal(50)
       )
 
-      val futureCharge = ChargeDetails(
+      val futureCharge = overdueCharge.copy(
         chargeId = "DEF12345",
         creationDate = today.minusMonths(1),
-        chargeType = "ITSA",
         chargeAmount = BigDecimal(100),
-        taxYear = "2023-2024",
-        dueDate = today.plusDays(10),
-        amendments = List.empty,
-        outstandingAmount = BigDecimal(100),
-        outstandingInterestDue = None,
-        accruingInterest = None,
-        accruingInterestPeriod = None,
-        accruingInterestRate = None
+        dueDate = today.minusDays(10),
+        outstandingAmount = BigDecimal(100)
       )
 
       val (result, remaining) =
-        CreditUtils.allocateCredit(BigDecimal(120), List(futureCharge, overdueCharge))
+        CreditUtils.allocateCredit(BigDecimal(120), List(futureCharge, lateCharge))
 
       remaining shouldBe BigDecimal(0)
 
@@ -153,19 +140,11 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
     "No allocation if the totalCreditAvailable less than 0" in {
 
       val charges = List(
-        ChargeDetails(
-          chargeId = "ABC12345",
+        overdueCharge.copy(
           creationDate = today.minusDays(10),
-          chargeType = "ITSA",
           chargeAmount = BigDecimal(150),
           outstandingAmount = BigDecimal(100),
-          taxYear = "2024-25",
-          dueDate = today.minusDays(11),
-          outstandingInterestDue = None,
-          accruingInterest = None,
-          accruingInterestPeriod = None,
-          accruingInterestRate = None,
-          amendments = List.empty
+          dueDate = today.minusDays(11)
         )
       )
 
@@ -182,21 +161,15 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
 
       updatedCharges shouldBe charges
     }
+
     "automatically allocateCredit if the totalCreditAvailable greater than 0" in {
+
       val charges = List(
-        ChargeDetails(
-          chargeId = "ABC12345",
+        overdueCharge.copy(
           creationDate = today.minusDays(10),
-          chargeType = "ITSA",
           chargeAmount = BigDecimal(150),
           outstandingAmount = BigDecimal(100),
-          taxYear = "2024-25",
-          dueDate = today.minusDays(11),
-          outstandingInterestDue = None,
-          accruingInterest = None,
-          accruingInterestPeriod = None,
-          accruingInterestRate = None,
-          amendments = List.empty
+          dueDate = today.minusDays(11)
         )
       )
 
