@@ -30,7 +30,7 @@ URL: `/mtd-identifier-lookup/nino/:nino `
 | 500         | Downstream error.                       |
 
 
-After a successful authorisation, a complex API in [HIP](https://admin.tax.service.gov.uk/integration-hub/apis/details/90582986-337d-4f9d-9aee-d367e9069e9d), is called which aggregates all self assessment data from 9 different APIs (3 from ETMP, 4 from CESA and one from [Payments API](https://github.com/hmrc/pay-api)) into one single endpoint. A random generator provides a response payload when this endpoint is called:
+After a successful authorisation, a complex API in [HIP](https://admin.tax.service.gov.uk/integration-hub/apis/details/90582986-337d-4f9d-9aee-d367e9069e9d), is called which aggregates all self assessment data from 8 different APIs (3 from ETMP, 4 from CESA and one from [Payments API](https://github.com/hmrc/pay-api)) into one single endpoint. A random generator provides a response payload when this endpoint is called:
 
 Method: `GET`
 
