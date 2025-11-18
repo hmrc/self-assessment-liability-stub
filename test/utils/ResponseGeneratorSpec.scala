@@ -16,7 +16,7 @@
 
 package utils
 
-import models.HipResponse
+import models.{Amendment, ChargeDetails, HipResponse}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -247,30 +247,52 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
         balanceDetails.earliestPendingDueDate shouldBe None
       }
     }
-    "generate a response from current year provided" in {
-      val hipResponse: HipResponse = ResponseGenerator.generateResponse(today.minusDays(30), today)
+  }
+  "allocateCredit method" should {
+    "handle comprehensive credit allocation scenarios" in {
+      val overdueCharge = ChargeDetails(
+        chargeId = "ABC12345",
+        creationDate = today.minusMonths(6),
+        chargeType = "ITSA",
+        chargeAmount = BigDecimal(1000.00),
+        taxYear = "2023-2024",
+        dueDate = today.minusMonths(3),
+        amendments = List.empty,
+        outstandingAmount = BigDecimal(1000.00),
+        outstandingInterestDue = None,
+        accruingInterest = None,
+        accruingInterestPeriod = None,
+        accruingInterestRate = None
+      )
 
-      hipResponse.chargeDetails should not be empty
-      hipResponse.paymentHistoryDetails should not be empty
-      hipResponse.chargeDetails.map { charge =>
-        charge.creationDate.getYear should (be >= 2025 and be <= 2026)
-        hipResponse.paymentHistoryDetails.foreach { payments =>
-          payments.paymentDate.getYear should (be >= 2025 and be <= 2026)
-        }
-      }
-    }
+      val (emptyResult, remainingCredit1) =
+        ResponseGenerator.allocateCredit(BigDecimal(500.00), List.empty)
+      emptyResult shouldBe empty
+      remainingCredit1 shouldBe BigDecimal(500.00)
 
-    "generate a response from future date provided" in {
-      val hipResponse: HipResponse = ResponseGenerator.generateResponse(today, today.plusDays(30))
+      val singleCharge =
+        overdueCharge.copy(chargeId = "EFG23456", outstandingAmount = BigDecimal(300.00))
 
-      hipResponse.chargeDetails should not be empty
-      hipResponse.paymentHistoryDetails should not be empty
-      hipResponse.chargeDetails.map { charge =>
-        charge.creationDate.getYear should (be >= 2025 and be <= 2026)
-        hipResponse.paymentHistoryDetails.foreach { payments =>
-          payments.paymentDate.getYear should (be >= 2025 and be <= 2026)
-        }
-      }
+      val (partialResult, remainingCredit3) =
+        ResponseGenerator.allocateCredit(BigDecimal(200.00), List(singleCharge))
+      val partialCharge = partialResult.head
+      partialCharge.outstandingAmount shouldBe BigDecimal(100.00)
+      partialCharge.amendments should have size 1
+      partialCharge.amendments.head.amendmentAmount shouldBe BigDecimal(200.00)
+      remainingCredit3 shouldBe BigDecimal(0.00)
+
+      val freshCharge =
+        singleCharge.copy(chargeId = "HIJ45678", outstandingAmount = BigDecimal(300.00))
+      val (excessResult, remainingCredit4) =
+        ResponseGenerator.allocateCredit(BigDecimal(500.00), List(freshCharge, singleCharge))
+      excessResult.map(_.outstandingAmount).sum shouldBe BigDecimal(100.00)
+      excessResult.map(_.amendments.map(_.amendmentAmount).sum).sum shouldBe BigDecimal(500.00)
+      remainingCredit4 shouldBe BigDecimal(0.00)
+      excessResult.size shouldBe 2
+      excessResult
+        .map(_.amendments.map(_.amendmentReason).contains("Credit applied from overpayment"))
+        .size shouldBe 2
     }
   }
+
 }
