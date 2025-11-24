@@ -47,6 +47,37 @@ Use the following command to run unit tests
 sbt test
 ```
 
+## Running SA Liability API Stubs Locally
+
+To run the stubs locally using SM2:
+
+1. **Start all required services:**
+```command
+   sm2 --start SELF_ASSESSMENT_LIABILITY_API_ALL
+```
+2. **Stop the SA Liability API stubs service:**
+```command
+   sm2 --stop SELF_ASSESSMENT_LIABILITY_API_STUBS
+```
+
+3. **Run the stubs locally:**
+```command
+   sbt run
+```
+
+## UTRs Used for Testing
+
+UTR Test Cases:
+
+| UTR        | Description           | Expected Behavior         |
+|------------|-----------------------|---------------------------|
+| 1100000404 | No NINO found for UTR | 404 Not Found             |
+| 2200000400 | Invalid UTR           | 400 Bad Request           |
+| 2200000500 | NINO server error     | 500 Internal Server Error |
+| 3300000403 | HIP forbidden         | 403 Forbidden             |
+| 3300000505 | Good UTR              | ✅ Success                 |
+
+
 ### License
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
