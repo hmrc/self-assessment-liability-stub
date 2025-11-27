@@ -65,18 +65,49 @@ To run the stubs locally using SM2:
    sbt run
 ```
 
-## UTRs Used for Testing
+## Test Data and API Responses
 
-UTR Test Cases:
+API: `CID`
 
-| UTR        | Description           | Expected Behavior         |
-|------------|-----------------------|---------------------------|
-| 1100000404 | No NINO found for UTR | 404 Not Found             |
-| 2200000400 | Invalid UTR           | 400 Bad Request           |
-| 2200000500 | NINO server error     | 500 Internal Server Error |
-| 3300000403 | HIP forbidden         | 403 Forbidden             |
-| 3300000505 | Good UTR              | ✅ Success                 |
+URL: `/citizen-details/sautr/:utr`
 
+| UTR        | Description                    | Expected Behavior                                     |
+|------------|--------------------------------|-------------------------------------------------------|
+| 1100000404 | No NINO found for UTR          | 404 Not Found                                         |
+| 1100000500 | Multiple NINOs (CID error)     | 500 Internal Server Error                             |
+| 2200000400 | Invalid NINO returned          | 200 OK with invalid Nino `"NI0000400"` returned         |
+| 2200000500 | NINO triggers downstream error | 200 OK with invalid Nino `"NI0000500"` returned         |
+| Any other  | Good UTR                       | Success (200 OK) with valid Nino `"GG000000X"` returned |
+
+
+API: `MTD Identifier Lookup`
+
+URL: `/mtd-identifier-lookup/nino/:nino `
+
+| NINO       | Description                    | Expected Behavior                                                |
+|------------|--------------------------------|------------------------------------------------------------------|
+| NI0000400  | Invalid NINO                   | 400 Bad Request                                                  |
+| NI0000500  | NINO triggers server error     | 500 Internal Server Error                                        |
+| Any other  | Valid NINO                     | 200 OK with valid MTDID key return return as `"XQIT00000000001"` |
+
+
+API: `HIP`
+
+URL: `/as/self-assessment/account/:utr/liability-details`
+
+| UTR        | Description                                                | Expected Behavior                         |
+|------------|------------------------------------------------------------|-------------------------------------------|
+| 3300000400 | Invalid Correlation ID                                     | 400 Bad Request                           |
+| 3300000401 | Invalid basic authentication credentials.                  | 401 Unauthorized                          |
+| 3300000403 | User does not have authority to retrieve requested record. | 403 Forbidden                             |
+| 3300000404 | UTR Not Found                                              | 404 Not Found                             |
+| 3300000422 | Invalid UTR                                                | 422 Unprocessable Entity                  |
+| 3300000500 | HIP Server Error                                           | 500 Internal Server Error                 |
+| 3300000502 | External Service Error                                     | 502 Bad Gateway                           |
+| 3300000503 | Service Unavailable                                        | 503 Service Unavailable                   |
+| 3300000504 | Service Success with incorrect balances                    | 200 OK HIP response with invalid balances |
+| 3300000505 | Service Success with correct balances                      | 200 OK HIP response with valid balances   |
+| Any other  | Default HIP Response                                       | 200 OK HIP response generated             |
 
 ### License
 
