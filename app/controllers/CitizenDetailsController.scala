@@ -68,11 +68,11 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
       )
     } else if (utr.equalsIgnoreCase(badUtrInvalidNino)) {
       Future.successful(
-        Ok(Json.parse(generateSuccessResponse(List(invalidNino))))
+        Ok(Json.parse(generateSuccessResponse(List(invalidNinoBadRequest))))
       )
     } else if (utr.equalsIgnoreCase(badUtrNinoServerError)) {
       Future.successful(
-        Ok(Json.parse(generateSuccessResponse(List(badNinoServerError))))
+        Ok(Json.parse(generateSuccessResponse(List(invalidNinoServerError))))
       )
     } else {
       Future.successful(

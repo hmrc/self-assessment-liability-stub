@@ -22,7 +22,7 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
-import utils.constants.RequestResponseConstants.{badNinoServerError, invalidNino}
+import utils.constants.RequestResponseConstants.{invalidNinoServerError, invalidNinoBadRequest}
 
 class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
 
@@ -37,17 +37,21 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid nino" in {
-      val result = controller.getMtdId(invalidNino)(fakeRequest)
+      val result = controller.getMtdId(invalidNinoBadRequest)(fakeRequest)
       status(result) shouldBe Status.BAD_REQUEST
-      contentAsJson(result) shouldBe Json.obj(
-        "message" -> "Invalid national insurance number supplied"
-      )
+      val json = contentAsJson(result)
+      (json \ "origin").as[String] shouldBe "HIP"
+      (json \ "response" \ 0 \ "type").as[String] shouldBe "BAD_REQUEST"
+      (json \ "response" \ 0 \ "reason").as[String] shouldBe "Invalid request format or parameters."
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message when service unavailable" in {
-      val result = controller.getMtdId(badNinoServerError)(fakeRequest)
+      val result = controller.getMtdId(invalidNinoServerError)(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
-      contentAsJson(result) shouldBe Json.obj("message" -> "Service currently unavailable")
+      val json = contentAsJson(result)
+      (json \ "origin").as[String] shouldBe "HIP"
+      (json \ "response" \ 0 \ "type").as[String] shouldBe "INTERNAL_SERVER_ERROR"
+      (json \ "response" \ 0 \ "reason").as[String] shouldBe "Service currently unavailable."
     }
   }
 }

@@ -16,7 +16,7 @@
 
 package controllers
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.constants.RequestResponseConstants.*
@@ -28,14 +28,28 @@ import scala.concurrent.Future
 class MtdIdLookupController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
   def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
-    if (nino.equalsIgnoreCase(invalidNino)) {
-      Future.successful(
-        BadRequest(Json.obj("message" -> "Invalid national insurance number supplied"))
+    if (nino.equalsIgnoreCase(invalidNinoBadRequest)) {
+      val errorResponse = ErrorResponse(
+        origin = "HIP",
+        response = List(FailureDetail("BAD_REQUEST", "Invalid request format or parameters."))
       )
-    } else if (nino.equalsIgnoreCase(badNinoServerError)) {
-      Future.successful(InternalServerError(Json.obj("message" -> "Service currently unavailable")))
+      Future.successful(BadRequest(Json.toJson(errorResponse)))
+    } else if (nino.equalsIgnoreCase(invalidNinoServerError)) {
+      val errorResponse = ErrorResponse(
+        origin = "HIP",
+        response = List(FailureDetail("INTERNAL_SERVER_ERROR", "Service currently unavailable."))
+      )
+      Future.successful(InternalServerError(Json.toJson(errorResponse)))
     } else {
       Future.successful(Ok(Json.obj("mtdbsa" -> validMtditid)))
     }
   }
+}
+
+case class ErrorResponse(origin: String, response: List[FailureDetail])
+case class FailureDetail(`type`: String, reason: String)
+
+object ErrorResponse {
+  implicit val failureDetailFormat: Format[FailureDetail] = Json.format[FailureDetail]
+  implicit val errorResponseFormat: Format[ErrorResponse] = Json.format[ErrorResponse]
 }

@@ -80,7 +80,7 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
       val result = controller.getNino(badUtrNinoServerError)(fakeRequest)
       status(result) shouldBe Status.OK
       contentAsJson(result) shouldBe Json.parse(
-        controller.generateSuccessResponse(List(badNinoServerError))
+        controller.generateSuccessResponse(List(invalidNinoServerError))
       )
     }
 
@@ -88,7 +88,7 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
       val result = controller.getNino(badUtrInvalidNino)(fakeRequest)
       status(result) shouldBe Status.OK
       contentAsJson(result) shouldBe Json.parse(
-        controller.generateSuccessResponse(List(invalidNino))
+        controller.generateSuccessResponse(List(invalidNinoBadRequest))
       )
     }
 

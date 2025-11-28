@@ -49,8 +49,8 @@ object RequestResponseConstants {
   )
   final val validNino1: String = "GG000000X"
   final val validNino2: String = "GG000000Z"
-  final val invalidNino: String = "NI0000400"
-  final val badNinoServerError: String = "NI0000500"
+  final val invalidNinoBadRequest: String = "NI0000400"
+  final val invalidNinoServerError: String = "NI0000500"
 
   final val validMtditid: String = "XQIT00000000001"
 }
