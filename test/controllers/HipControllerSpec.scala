@@ -31,10 +31,17 @@ import utils.constants.RequestResponseConstants.*
 
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import java.util.UUID
 
 class HipControllerSpec extends AnyWordSpec with Matchers {
   private val mockService: HipService = mock[HipService]
+  private val correlationId = UUID.randomUUID.toString
   private val fakeRequest = FakeRequest("GET", "/")
+    .withHeaders(
+      "Authorization" -> "Basic dGVzdDp0ZXN0",
+      "Content-Type" -> "application/json",
+      "CorrelationId" -> correlationId
+    )
   private val controller = new HipController(Helpers.stubControllerComponents(), mockService)
   private val validUtr: String = "1234567890"
   private val validFromDate: String = "2024-01-01"
@@ -205,6 +212,76 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe Status.SERVICE_UNAVAILABLE
       contentAsJson(result) shouldBe Json.toJson(
         createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
+      )
+    }
+
+    "return 400 when Authorization header is missing" in {
+      val requestWithoutAuth = FakeRequest("GET", "/")
+        .withHeaders(
+          "Content-Type" -> "application/json",
+          "CorrelationId" -> correlationId
+        )
+
+      val result =
+        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(requestWithoutAuth)
+      status(result) shouldBe Status.BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse("HIP", None, "MISSING_HEADER", "Authorization header is required")
+      )
+    }
+
+    "return 400 when CorrelationId header is missing" in {
+      val requestWithoutAuth = FakeRequest("GET", "/")
+        .withHeaders(
+          "Authorization" -> "Basic dGVzdDp0ZXN0",
+          "Content-Type" -> "application/json"
+        )
+
+      val result =
+        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(requestWithoutAuth)
+      status(result) shouldBe Status.BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse(
+          "HIP",
+          None,
+          "MISSING_HEADER",
+          "Correlation-ID header is required and must be in UUID format"
+        )
+      )
+    }
+
+    "return 400 when Content-Type header is missing" in {
+      val requestWithoutAuth = FakeRequest("GET", "/")
+        .withHeaders(
+          "CorrelationId" -> correlationId,
+          "Authorization" -> "Basic dGVzdDp0ZXN0"
+        )
+
+      val result =
+        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(requestWithoutAuth)
+      status(result) shouldBe Status.BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse("HIP", None, "MISSING_HEADER", "Content-Type header is required")
+      )
+    }
+
+    "return 400 when correlationId not in UUID" in {
+      val requestWithoutAuth = FakeRequest("GET", "/")
+        .withHeaders(
+          "Content-Type" -> "application/json",
+          "CorrelationId" -> "test-correlation-id"
+        )
+
+      val result =
+        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(requestWithoutAuth)
+      status(result) shouldBe Status.BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse(
+          "HIP",
+          None,
+          "MISSING_HEADER",
+          "Correlation-ID header is required and must be in UUID format"
+        )
       )
     }
   }
