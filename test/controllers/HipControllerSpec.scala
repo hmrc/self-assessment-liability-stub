@@ -265,11 +265,12 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       )
     }
 
-    "return 400 when correlationId not in UUID" in {
+    "return 400 when correlationId not in UUID format" in {
       val requestWithoutAuth = FakeRequest("GET", "/")
         .withHeaders(
           "Content-Type" -> "application/json",
-          "CorrelationId" -> "test-correlation-id"
+          "CorrelationId" -> "test-correlation-id",
+          "Authorization" -> "Basic dGVzdDp0ZXN0"
         )
 
       val result =
