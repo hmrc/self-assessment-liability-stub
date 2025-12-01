@@ -22,5 +22,5 @@ import play.api.Configuration
 @Singleton
 class AppConfig @Inject() (config: Configuration) {
 
-  val appName: String = config.get[String]("appName")
+  val cidE2eTestDataEnabled: Boolean = config.get[Boolean]("features.endToEndTestDataEnabled")
 }

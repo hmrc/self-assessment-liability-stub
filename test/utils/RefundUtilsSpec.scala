@@ -32,7 +32,7 @@ class RefundUtilsSpec extends AnyWordSpec with Matchers {
       chargeAmount = BigDecimal(200.00),
       taxYear = "2023-2024",
       dueDate = today.minusMonths(3),
-      amendments = List.empty,
+      amendments = None,
       outstandingAmount = BigDecimal(1000.00),
       outstandingInterestDue = None,
       accruingInterest = None,

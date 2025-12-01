@@ -135,9 +135,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
       charge.amendments.nonEmpty shouldBe true
 
       val amendDate =
-        charge.amendments.headOption
-          .map(_.amendmentDate)
-          .getOrElse(fail("Expected at least one amendment"))
+        charge.amendments.getOrElse(fail("Expected at least one amendment")).head.amendmentDate
 
       amendDate shouldEqual paymentWithoutProcessed.paymentDate.plusDays(6)
     }

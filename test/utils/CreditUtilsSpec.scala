@@ -34,7 +34,7 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
     chargeAmount = BigDecimal(1000.00),
     taxYear = "2023-2024",
     dueDate = today.minusMonths(3),
-    amendments = List.empty,
+    amendments = None,
     outstandingAmount = BigDecimal(1000.00),
     outstandingInterestDue = None,
     accruingInterest = None,
@@ -57,8 +57,11 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
         CreditUtils.allocateCredit(BigDecimal(200.00), List(singleCharge))
       val partialCharge = partialResult.head
       partialCharge.outstandingAmount shouldBe BigDecimal(100.00)
-      partialCharge.amendments should have size 1
-      partialCharge.amendments.head.amendmentAmount shouldBe BigDecimal(200.00)
+
+      partialCharge.amendments.map { amendments =>
+        amendments should have size 1
+        amendments.map(_.amendmentAmount shouldBe BigDecimal(200.00))
+      }
       remainingCredit3 shouldBe BigDecimal(0.00)
 
       val freshCharge =
@@ -66,25 +69,32 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
       val (excessResult, remainingCredit4) =
         CreditUtils.allocateCredit(BigDecimal(500.00), List(freshCharge, singleCharge))
       excessResult.map(_.outstandingAmount).sum shouldBe BigDecimal(100.00)
-      excessResult.map(_.amendments.map(_.amendmentAmount).sum).sum shouldBe BigDecimal(500.00)
+      excessResult
+        .map(_.amendments.getOrElse(List.empty).map(_.amendmentAmount).sum)
+        .sum shouldBe BigDecimal(500.00)
       remainingCredit4 shouldBe BigDecimal(0.00)
       excessResult.size shouldBe 2
       excessResult
-        .map(_.amendments.map(_.amendmentReason).contains("Credit applied from overpayment"))
+        .map(
+          _.amendments
+            .getOrElse(List.empty)
+            .map(_.amendmentReason)
+            .contains("Credit applied from overpayment")
+        )
         .size shouldBe 2
 
       val overdueZeroOutstanding = overdueCharge.copy(
         chargeId = "ZBC12345",
         dueDate = today.minusDays(10),
         outstandingAmount = BigDecimal(0.00),
-        amendments = List.empty
+        amendments = None
       )
 
       val futureEligible = overdueCharge.copy(
         chargeId = "NBC12345",
         dueDate = today.plusDays(10),
         outstandingAmount = BigDecimal(150.00),
-        amendments = List.empty
+        amendments = None
       )
 
       val (futureAllocResult, futureAllocRemaining) =
@@ -93,8 +103,8 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
       futureAllocRemaining shouldBe BigDecimal(0.00)
       val updatedFuture = futureAllocResult.find(_.chargeId == "NBC12345").get
       updatedFuture.outstandingAmount shouldBe BigDecimal(50.00)
-      updatedFuture.amendments should have size 1
-      updatedFuture.amendments.head.amendmentAmount shouldBe BigDecimal(100.00)
+      updatedFuture.amendments.map(_ should have size 1)
+      updatedFuture.amendments.map(_.head.amendmentAmount shouldBe BigDecimal(100.00))
 
       futureAllocResult.find(_.chargeId == "ZBC12345").get.outstandingAmount shouldBe BigDecimal(
         0.00
@@ -126,13 +136,13 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
 
       val updatedOverdue = result.find(_.chargeId == "ABC12345").get
       updatedOverdue.outstandingAmount shouldBe BigDecimal(0)
-      updatedOverdue.amendments should have size 1
-      updatedOverdue.amendments.head.amendmentAmount shouldBe BigDecimal(50)
+      updatedOverdue.amendments.map(_ should have size 1)
+      updatedOverdue.amendments.map(_.head.amendmentAmount shouldBe BigDecimal(50))
 
       val updatedFuture = result.find(_.chargeId == "DEF12345").get
       updatedFuture.outstandingAmount shouldBe BigDecimal(30)
-      updatedFuture.amendments should have size 1
-      updatedFuture.amendments.head.amendmentAmount shouldBe BigDecimal(70)
+      updatedFuture.amendments.map(_ should have size 1)
+      updatedFuture.amendments.map(_.head.amendmentAmount shouldBe BigDecimal(70))
     }
   }
 

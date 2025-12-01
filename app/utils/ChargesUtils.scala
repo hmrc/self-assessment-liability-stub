@@ -70,8 +70,8 @@ object ChargesUtils {
       dueDate = creationDate.plusMonths(1),
       amendments =
         if (isNotRecentStatement)
-          generateAmendment(processDate, amendmentAmount, paymentItem)
-        else List.empty,
+          Some(generateAmendment(processDate, amendmentAmount, paymentItem))
+        else None,
       outstandingAmount = outstandingAmount,
       outstandingInterestDue = None,
       accruingInterest = None,

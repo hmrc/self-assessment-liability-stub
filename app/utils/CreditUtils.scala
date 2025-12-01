@@ -76,7 +76,10 @@ object CreditUtils {
         paymentDate = None
       )
 
-    charge.copy(amendments = charge.amendments :+ amendment, outstandingAmount = remainingBalance)
+    charge.copy(
+      amendments = Some(charge.amendments.getOrElse(List.empty) :+ amendment),
+      outstandingAmount = remainingBalance
+    )
   }
 
   private def getOverdueOrFutureCharges(charges: List[ChargeDetails]): Option[ChargeDetails] = {

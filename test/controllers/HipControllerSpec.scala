@@ -23,7 +23,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import services.HipService
@@ -207,6 +207,23 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
         createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
       )
     }
+
+    "return ok response with valid json body for 3333333333 utr" in {
+      val result =
+        controller.getSelfAssessmentData(onlyBalanceDetailPayload, validFromDate, validToDate)(
+          fakeRequest
+        )
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.obj(
+        "balanceDetails" -> Json.obj(
+          "totalOverdueBalance" -> 0,
+          "totalPayableBalance" -> 0,
+          "totalPendingBalance" -> 0,
+          "totalBalance" -> 0,
+          "totalCreditAvailable" -> 0
+        )
+      )
+    }
   }
 }
 
@@ -235,33 +252,37 @@ object HipControllerSpec {
       earliestPendingDueDate = Some(LocalDate.of(2024, 6, 15)),
       totalBalance = 1700.00,
       totalCreditAvailable = 0.00,
-      codedOutDetail = List.empty[CodedOutDetail]
+      codedOutDetail = None
     ),
-    chargeDetails = List(
-      ChargeDetails(
-        chargeId = "charge-123",
-        creationDate = LocalDate.of(2023, 1, 15),
-        chargeType = "ITSA",
-        chargeAmount = 1000.00,
-        taxYear = "2023-2024",
-        dueDate = LocalDate.of(2024, 1, 31),
-        amendments = List.empty,
-        outstandingAmount = 1000.00,
-        outstandingInterestDue = None,
-        accruingInterest = None,
-        accruingInterestPeriod = None,
-        accruingInterestRate = None
+    chargeDetails = Some(
+      List(
+        ChargeDetails(
+          chargeId = "charge-123",
+          creationDate = LocalDate.of(2023, 1, 15),
+          chargeType = "ITSA",
+          chargeAmount = 1000.00,
+          taxYear = "2023-2024",
+          dueDate = LocalDate.of(2024, 1, 31),
+          amendments = None,
+          outstandingAmount = 1000.00,
+          outstandingInterestDue = None,
+          accruingInterest = None,
+          accruingInterestPeriod = None,
+          accruingInterestRate = None
+        )
       )
     ),
-    refundDetails = List.empty,
-    paymentHistoryDetails = List(
-      PaymentHistoryDetails(
-        paymentAmount = 500.00,
-        paymentReference = "payment-123",
-        paymentMethod = Some("bank transfer"),
-        paymentDate = LocalDate.of(2023, 2, 15),
-        processedDate = Some(LocalDate.of(2023, 2, 16)),
-        allocationReference = List("charge-123")
+    refundDetails = None,
+    paymentHistoryDetails = Some(
+      List(
+        PaymentHistoryDetails(
+          paymentAmount = 500.00,
+          paymentReference = "payment-123",
+          paymentMethod = Some("bank transfer"),
+          paymentDate = LocalDate.of(2023, 2, 15),
+          processedDate = Some(LocalDate.of(2023, 2, 16)),
+          allocationReference = List("charge-123")
+        )
       )
     )
   )

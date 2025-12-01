@@ -16,6 +16,7 @@
 
 package controllers
 
+import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -25,9 +26,13 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class MtdIdLookupController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
+class MtdIdLookupController @Inject() (cc: ControllerComponents)
+    extends BackendController(cc)
+    with Logging {
 
   def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
+
+    logger.info(s"validating $nino")
     if (nino.equalsIgnoreCase(invalidNino)) {
       Future.successful(
         BadRequest(Json.obj("message" -> "Invalid national insurance number supplied"))

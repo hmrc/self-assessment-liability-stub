@@ -70,9 +70,9 @@ object ResponseGenerator extends Logging {
 
     HipResponse(
       balanceDetails,
-      allChargesWithRefundAllocated._1,
-      allRefunds,
-      allPaymentHistory
+      Some(allChargesWithRefundAllocated._1),
+      Some(allRefunds),
+      Some(allPaymentHistory)
     )
   }
 
@@ -93,10 +93,9 @@ object ResponseGenerator extends Logging {
           )
         )
       }
-      .getOrElse(List.empty)
     val totalOverDueBalance = overDueChargesWithAnOutstandingAmount
       .map(_.outstandingAmount)
-      .sum - getCodedOut.map(_.totalAmount).sum
+      .sum - getCodedOut.getOrElse(List.empty).map(_.totalAmount).sum
     val allPayableCharges = charges.filter { charge =>
       charge.dueDate.isAfter(today) && charge.dueDate.isBefore(today.plusDays(29))
     }

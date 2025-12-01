@@ -114,14 +114,25 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
               earliestPendingDueDate = None,
               totalBalance = 200,
               totalCreditAvailable = 0,
-              codedOutDetail = List.empty
+              codedOutDetail = None
             ),
-            chargeDetails = List.empty,
-            refundDetails = List.empty,
-            paymentHistoryDetails = List.empty
+            chargeDetails = None,
+            refundDetails = None,
+            paymentHistoryDetails = None
           )
           val json = Json.toJson(hipResponse)
           Future.successful(Ok(json))
+        case u if u == onlyBalanceDetailPayload =>
+          val minimalHipResponseJson: JsValue = Json.obj(
+            "balanceDetails" -> Json.obj(
+              "totalOverdueBalance" -> 0,
+              "totalPayableBalance" -> 0,
+              "totalPendingBalance" -> 0,
+              "totalBalance" -> 0,
+              "totalCreditAvailable" -> 0
+            )
+          )
+          Future.successful(Ok(minimalHipResponseJson))
         case u if u == goodUtrHipInternalService =>
           val hipResponse: HipResponse = HipResponse(
             balanceDetails = BalanceDetails(
@@ -132,11 +143,11 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
               earliestPendingDueDate = Some(today.plusDays(31 + Random.nextInt(150))),
               totalBalance = 200,
               totalCreditAvailable = 0,
-              codedOutDetail = List.empty
+              codedOutDetail = None
             ),
-            chargeDetails = List.empty,
-            refundDetails = List.empty,
-            paymentHistoryDetails = List.empty
+            chargeDetails = None,
+            refundDetails = None,
+            paymentHistoryDetails = None
           )
           val json = Json.toJson(hipResponse)
           Future.successful(Ok(json))
