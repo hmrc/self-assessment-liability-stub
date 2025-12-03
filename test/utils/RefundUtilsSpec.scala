@@ -43,7 +43,7 @@ class RefundUtilsSpec extends AnyWordSpec with Matchers {
   val payments =
     PaymentHistoryDetails(
       paymentAmount = BigDecimal(100.00),
-      paymentReference = "payment-123",
+      paymentReference = Some("payment-123"),
       paymentMethod = Some("bank transfer"),
       paymentDate = today.minusMonths(6),
       processedDate = Some(today.minusMonths(6).plusDays(6)),

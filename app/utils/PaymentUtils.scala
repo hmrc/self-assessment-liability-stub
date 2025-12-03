@@ -28,7 +28,7 @@ object PaymentUtils {
     val paymentDateFilter = paymentDate.plusDays(random.nextInt(6))
     PaymentHistoryDetails(
       paymentAmount = paymentAmount,
-      paymentReference = ResponseGenerator.generateId(),
+      paymentReference = Some(ResponseGenerator.generateId()),
       paymentMethod = Some(randomPaymentMethod),
       paymentDate = paymentDate,
       processedDate = Some(if (paymentDateFilter.isAfter(today)) today else paymentDateFilter),
