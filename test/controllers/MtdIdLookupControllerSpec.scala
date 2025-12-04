@@ -65,7 +65,7 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
       val json = contentAsJson(result)
       (json \ "origin").as[String] shouldBe "HIP"
       (json \ "response" \ 0 \ "type").as[String] shouldBe "INTERNAL_SERVER_ERROR"
-      (json \ "response" \ 0 \ "reason").as[String] shouldBe "Service currently unavailable."
+      (json \ "response" \ 0 \ "reason").as[String] shouldBe "Internal server error."
     }
 
     "return 503 SERVICE_UNAVAILABLE with correct error message when service is unavailable" in {
@@ -73,9 +73,9 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe Status.SERVICE_UNAVAILABLE
       val json = contentAsJson(result)
       (json \ "origin").as[String] shouldBe "HIP"
-      (json \ "response" \ "failures" \ 0 \ "type").as[String] shouldBe "SERVICE_UNAVAILABLE"
-      (json \ "response" \ "failures" \ 0 \ "reason")
-        .as[String] shouldBe "Service is currently unavailable"
+      (json \ "response" \ 0 \ "type").as[String] shouldBe "SERVICE_UNAVAILABLE"
+      (json \ "response" \ 0 \ "reason")
+        .as[String] shouldBe "Service is currently unavailable."
     }
 
     "return error response with random error code and description" in {

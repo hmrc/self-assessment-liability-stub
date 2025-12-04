@@ -54,38 +54,39 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
         s"Calling CID with $utr which is a test data that will result in an error"
       else s"Calling CID with $utr"
     logger.info(message)
-    if (utr.equalsIgnoreCase(noNinoFoundForUtr)) {
-      Future.successful(
-        NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))
-      )
-    } else if (utr.equalsIgnoreCase(badUtrMultiple)) {
-      val validNinos = List(validNino1, validNino2)
-      logger.info(
-        s"${validNinos.length} valid ninos associated with $badUtrMultiple returned from CID"
-      )
-      Future.successful(
-        InternalServerError(Json.parse(generateSuccessResponse(validNinos)))
-      )
-    } else if (utr.equalsIgnoreCase(badUtrInvalidNino)) {
-      Future.successful(
-        Ok(Json.parse(generateSuccessResponse(List(invalidNinoBadRequest))))
-      )
-    } else if (utr.equalsIgnoreCase(badUtrNinoServerError)) {
-      Future.successful(
-        Ok(Json.parse(generateSuccessResponse(List(invalidNinoServerError))))
-      )
-    } else if (utr.equalsIgnoreCase(badUtrNinoServiceUnavailable)) {
-      Future.successful(
-        Ok(Json.parse(generateSuccessResponse(List(invalidNinoServiceUnavailable))))
-      )
-    } else if (utr.equalsIgnoreCase(badUtrNinoETMPValidationError)) {
-      Future.successful(
-        Ok(Json.parse(generateSuccessResponse(List(invalidNinoETMPValidationError))))
-      )
-    } else {
-      Future.successful(
-        Ok(Json.parse(generateSuccessResponse(List(validNino1))))
-      )
+    utr match {
+      case u if u == "3384286946" =>
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP105133A")))))
+      case u if u == "1992665564" =>
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP105333A")))))
+      case u if u == "4809635190" =>
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP105533A")))))
+      case u if u == "2112635977" =>
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP184333A")))))
+      case u if u == "3601373390" =>
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP120333A")))))
+      case u if u == "1405365362" =>
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP071433A")))))
+      case u if u == noNinoFoundForUtr =>
+        Future.successful(
+          NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))
+        )
+      case u if u == badUtrMultiple =>
+        val validNinos = List(validNino1, validNino2)
+        Future.successful(InternalServerError(Json.parse(generateSuccessResponse(validNinos))))
+      case u if u == badUtrInvalidNino =>
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List(invalidNinoBadRequest)))))
+      case u if u == badUtrNinoServerError =>
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List(invalidNinoServerError)))))
+      case u if u == badUtrNinoServiceUnavailable =>
+        Future.successful(
+          Ok(Json.parse(generateSuccessResponse(List(invalidNinoServiceUnavailable))))
+        )
+      case u if u == badUtrNinoETMPValidationError =>
+        Future.successful(
+          Ok(Json.parse(generateSuccessResponse(List(invalidNinoETMPValidationError))))
+        )
+      case _ => Future.successful(Ok(Json.parse(generateSuccessResponse(List(validNino1)))))
     }
   }
 }

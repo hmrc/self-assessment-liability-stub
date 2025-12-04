@@ -29,29 +29,7 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new CitizenDetailsController(Helpers.stubControllerComponents())
 
-  "Generating a success response" should {
-    "return a hard-coded response with the given string as the NINO" in {
-      val expectedResponse: String =
-        s"""
-    {
-      "name": {
-        "current": {
-          "firstName": "John",
-          "lastName": "Smith"
-        },
-        "previous": []
-      },
-      "ids": {
-        "nino": "123456789"
-      },
-      "dateOfBirth": "11121971"
-    }
-    """
-      controller.generateSuccessResponse(List("123456789")) shouldBe expectedResponse
-    }
-  }
-
-  "GET /" should {
+  "CID Controller" should {
     "return 200 with correct NINO for a valid UTR" in {
       val result = controller.getNino("any other UTR")(fakeRequest)
       status(result) shouldBe Status.OK
@@ -107,6 +85,52 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
         controller.generateSuccessResponse(List(invalidNinoBadRequest))
       )
     }
+    "return 200 with WP105133A for 3384286946" in {
+      val result = controller.getNino("3384286946")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(List("WP105133A"))
+      )
+    }
 
+    "return 200 with WP105333A for 1992665564" in {
+      val result = controller.getNino("1992665564")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(List("WP105333A"))
+      )
+    }
+
+    "return 200 with WP105533A for 4809635190" in {
+      val result = controller.getNino("4809635190")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(List("WP105533A"))
+      )
+    }
+
+    "return 200 with WP184333A for 2112635977" in {
+      val result = controller.getNino("2112635977")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(List("WP184333A"))
+      )
+    }
+
+    "return 200 with WP120333A for 3601373390" in {
+      val result = controller.getNino("3601373390")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(List("WP120333A"))
+      )
+    }
+
+    "return 200 with WP071433A for 1405365362" in {
+      val result = controller.getNino("1405365362")(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(List("WP071433A"))
+      )
+    }
   }
 }

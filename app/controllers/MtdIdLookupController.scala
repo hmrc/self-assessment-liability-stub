@@ -16,7 +16,8 @@
 
 package controllers
 
-import play.api.libs.json.{Format, Json}
+import models.{FailureDetail, HipErrorResponse}
+import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.constants.RequestResponseConstants.*
@@ -36,30 +37,23 @@ class MtdIdLookupController @Inject() (cc: ControllerComponents) extends Backend
 
   def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
     if (nino.equalsIgnoreCase(invalidNinoBadRequest)) {
-      val errorResponse = ErrorResponse(
+      val errorResponse = HipErrorResponse(
         origin = "HIP",
         response = List(FailureDetail("BAD_REQUEST", "Invalid request format or parameters."))
       )
       Future.successful(BadRequest(Json.toJson(errorResponse)))
     } else if (nino.equalsIgnoreCase(invalidNinoServerError)) {
-      val errorResponse = ErrorResponse(
+      val errorResponse = HipErrorResponse(
         origin = "HIP",
-        response = List(FailureDetail("INTERNAL_SERVER_ERROR", "Service currently unavailable."))
+        response = List(FailureDetail("INTERNAL_SERVER_ERROR", "Internal server error."))
       )
       Future.successful(InternalServerError(Json.toJson(errorResponse)))
     } else if (nino.equalsIgnoreCase(invalidNinoServiceUnavailable)) {
-      val errorResponse = Json.obj(
-        "origin" -> "HIP",
-        "response" -> Json.obj(
-          "failures" -> Json.arr(
-            Json.obj(
-              "type" -> "SERVICE_UNAVAILABLE",
-              "reason" -> "Service is currently unavailable"
-            )
-          )
-        )
+      val errorResponse = HipErrorResponse(
+        origin = "HIP",
+        response = List(FailureDetail("SERVICE_UNAVAILABLE", "Service is currently unavailable."))
       )
-      Future.successful(ServiceUnavailable(errorResponse))
+      Future.successful(ServiceUnavailable(Json.toJson(errorResponse)))
     } else if (nino.equalsIgnoreCase(invalidNinoETMPValidationError)) {
       val errors = errorCodeMap.toSeq
       val (code, text) = errors(scala.util.Random.nextInt(errors.length))
@@ -90,12 +84,4 @@ class MtdIdLookupController @Inject() (cc: ControllerComponents) extends Backend
       Future.successful(Ok(successResponse))
     }
   }
-}
-
-case class ErrorResponse(origin: String, response: List[FailureDetail])
-case class FailureDetail(`type`: String, reason: String)
-
-object ErrorResponse {
-  implicit val failureDetailFormat: Format[FailureDetail] = Json.format[FailureDetail]
-  implicit val errorResponseFormat: Format[ErrorResponse] = Json.format[ErrorResponse]
 }
