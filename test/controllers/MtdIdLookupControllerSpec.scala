@@ -24,7 +24,6 @@ import play.api.test.{FakeRequest, Helpers}
 import utils.constants.RequestResponseConstants.{
   invalidNinoBadRequest,
   invalidNinoETMPValidationError,
-  invalidNinoServerError,
   invalidNinoServiceUnavailable,
   validMtditid
 }
@@ -57,15 +56,6 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
       (json \ "origin").as[String] shouldBe "HIP"
       (json \ "response" \ 0 \ "type").as[String] shouldBe "BAD_REQUEST"
       (json \ "response" \ 0 \ "reason").as[String] shouldBe "Invalid request format or parameters."
-    }
-
-    "return 500 INTERNAL_SERVER_ERROR with correct error message when there is a internal service error" in {
-      val result = controller.getMtdId(invalidNinoServerError)(fakeRequest)
-      status(result) shouldBe Status.INTERNAL_SERVER_ERROR
-      val json = contentAsJson(result)
-      (json \ "origin").as[String] shouldBe "HIP"
-      (json \ "response" \ 0 \ "type").as[String] shouldBe "INTERNAL_SERVER_ERROR"
-      (json \ "response" \ 0 \ "reason").as[String] shouldBe "Internal server error."
     }
 
     "return 503 SERVICE_UNAVAILABLE with correct error message when service is unavailable" in {

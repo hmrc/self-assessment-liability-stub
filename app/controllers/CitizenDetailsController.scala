@@ -76,8 +76,6 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
         Future.successful(InternalServerError(Json.parse(generateSuccessResponse(validNinos))))
       case u if u == badUtrInvalidNino =>
         Future.successful(Ok(Json.parse(generateSuccessResponse(List(invalidNinoBadRequest)))))
-      case u if u == badUtrNinoServerError =>
-        Future.successful(Ok(Json.parse(generateSuccessResponse(List(invalidNinoServerError)))))
       case u if u == badUtrNinoServiceUnavailable =>
         Future.successful(
           Ok(Json.parse(generateSuccessResponse(List(invalidNinoServiceUnavailable))))

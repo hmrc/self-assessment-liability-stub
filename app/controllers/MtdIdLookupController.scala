@@ -42,12 +42,6 @@ class MtdIdLookupController @Inject() (cc: ControllerComponents) extends Backend
         response = List(FailureDetail("BAD_REQUEST", "Invalid request format or parameters."))
       )
       Future.successful(BadRequest(Json.toJson(errorResponse)))
-    } else if (nino.equalsIgnoreCase(invalidNinoServerError)) {
-      val errorResponse = HipErrorResponse(
-        origin = "HIP",
-        response = List(FailureDetail("INTERNAL_SERVER_ERROR", "Internal server error."))
-      )
-      Future.successful(InternalServerError(Json.toJson(errorResponse)))
     } else if (nino.equalsIgnoreCase(invalidNinoServiceUnavailable)) {
       val errorResponse = HipErrorResponse(
         origin = "HIP",
