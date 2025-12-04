@@ -27,6 +27,13 @@ import scala.concurrent.Future
 @Singleton()
 class MtdIdLookupController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
+  private val errorCodeMap = Map(
+    "001" -> "REGIME missing or invalid",
+    "006" -> "Subscription data not found",
+    "007" -> "Your request cannot be processed, please contact the help line",
+    "008" -> "ID not found"
+  )
+
   def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
     if (nino.equalsIgnoreCase(invalidNinoBadRequest)) {
       val errorResponse = ErrorResponse(
@@ -40,8 +47,47 @@ class MtdIdLookupController @Inject() (cc: ControllerComponents) extends Backend
         response = List(FailureDetail("INTERNAL_SERVER_ERROR", "Service currently unavailable."))
       )
       Future.successful(InternalServerError(Json.toJson(errorResponse)))
+    } else if (nino.equalsIgnoreCase(invalidNinoServiceUnavailable)) {
+      val errorResponse = Json.obj(
+        "origin" -> "HIP",
+        "response" -> Json.obj(
+          "failures" -> Json.arr(
+            Json.obj(
+              "type" -> "SERVICE_UNAVAILABLE",
+              "reason" -> "Service is currently unavailable"
+            )
+          )
+        )
+      )
+      Future.successful(ServiceUnavailable(errorResponse))
+    } else if (nino.equalsIgnoreCase(invalidNinoETMPValidationError)) {
+      val errors = errorCodeMap.toSeq
+      val (code, text) = errors(scala.util.Random.nextInt(errors.length))
+
+      val errorResponse = Json.obj(
+        "errors" -> Json.obj(
+          "processingDate" -> java.time.Instant.now().toString,
+          "code" -> code,
+          "text" -> text
+        )
+      )
+      Future.successful(UnprocessableEntity(errorResponse))
     } else {
-      Future.successful(Ok(Json.obj("mtdbsa" -> validMtditid)))
+      val successResponse = Json.obj(
+        "success" -> Json.obj(
+          "processingDate" -> java.time.Instant.now().toString,
+          "taxPayerDisplayResponse" -> Json.obj(
+            "safeId" -> "ZX1135522140666",
+            "nino" -> nino,
+            "mtdId" -> validMtditid,
+            "yearOfMigration" -> "2025",
+            "propertyIncomeFlag" -> true,
+            "businessData" -> Json.arr(),
+            "propertyData" -> Json.arr()
+          )
+        )
+      )
+      Future.successful(Ok(successResponse))
     }
   }
 }

@@ -74,6 +74,14 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
       Future.successful(
         Ok(Json.parse(generateSuccessResponse(List(invalidNinoServerError))))
       )
+    } else if (utr.equalsIgnoreCase(badUtrNinoServiceUnavailable)) {
+      Future.successful(
+        Ok(Json.parse(generateSuccessResponse(List(invalidNinoServiceUnavailable))))
+      )
+    } else if (utr.equalsIgnoreCase(badUtrNinoETMPValidationError)) {
+      Future.successful(
+        Ok(Json.parse(generateSuccessResponse(List(invalidNinoETMPValidationError))))
+      )
     } else {
       Future.successful(
         Ok(Json.parse(generateSuccessResponse(List(validNino1))))

@@ -19,21 +19,35 @@ package controllers
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status
-import play.api.libs.json.Json
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
-import utils.constants.RequestResponseConstants.{invalidNinoServerError, invalidNinoBadRequest}
+import utils.constants.RequestResponseConstants.{
+  invalidNinoBadRequest,
+  invalidNinoETMPValidationError,
+  invalidNinoServerError,
+  invalidNinoServiceUnavailable,
+  validMtditid
+}
 
 class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
 
   private val fakeRequest = FakeRequest("GET", "/")
   private val controller = new MtdIdLookupController(Helpers.stubControllerComponents())
 
+  private val errorCodeMap = Map(
+    "001" -> "REGIME missing or invalid",
+    "006" -> "Subscription data not found",
+    "007" -> "Your request cannot be processed, please contact the help line",
+    "008" -> "ID not found"
+  )
+
   "GET /" should {
-    "return 200 with correct mtdbsa for a valid nino" in {
+    "return 200 with correct mtdId for a valid nino" in {
       val result = controller.getMtdId("ss686868d")(fakeRequest)
       status(result) shouldBe Status.OK
-      contentAsJson(result) shouldBe Json.obj("mtdbsa" -> "XQIT00000000001")
+      val json = contentAsJson(result)
+
+      (json \ "success" \ "taxPayerDisplayResponse" \ "mtdId").as[String] shouldBe validMtditid
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid nino" in {
@@ -45,13 +59,45 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
       (json \ "response" \ 0 \ "reason").as[String] shouldBe "Invalid request format or parameters."
     }
 
-    "return 500 INTERNAL_SERVER_ERROR with correct error message when service unavailable" in {
+    "return 500 INTERNAL_SERVER_ERROR with correct error message when there is a internal service error" in {
       val result = controller.getMtdId(invalidNinoServerError)(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
       (json \ "origin").as[String] shouldBe "HIP"
       (json \ "response" \ 0 \ "type").as[String] shouldBe "INTERNAL_SERVER_ERROR"
       (json \ "response" \ 0 \ "reason").as[String] shouldBe "Service currently unavailable."
+    }
+
+    "return 503 SERVICE_UNAVAILABLE with correct error message when service is unavailable" in {
+      val result = controller.getMtdId(invalidNinoServiceUnavailable)(fakeRequest)
+      status(result) shouldBe Status.SERVICE_UNAVAILABLE
+      val json = contentAsJson(result)
+      (json \ "origin").as[String] shouldBe "HIP"
+      (json \ "response" \ "failures" \ 0 \ "type").as[String] shouldBe "SERVICE_UNAVAILABLE"
+      (json \ "response" \ "failures" \ 0 \ "reason")
+        .as[String] shouldBe "Service is currently unavailable"
+    }
+
+    "return error response with random error code and description" in {
+      val result = controller.getMtdId(invalidNinoETMPValidationError)(fakeRequest)
+      status(result) shouldBe Status.UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+
+      val code = (json \ "errors" \ "code").as[String]
+      val text = (json \ "errors" \ "text").as[String]
+
+      errorCodeMap should contain key code
+      errorCodeMap(code) shouldBe text
+    }
+
+    "return 200 OK with success response for valid nino" in {
+      val validNino = "AS243900B"
+      val result = controller.getMtdId(validNino)(fakeRequest)
+      status(result) shouldBe Status.OK
+      val json = contentAsJson(result)
+
+      (json \ "success" \ "taxPayerDisplayResponse" \ "nino").as[String] shouldBe validNino
+      (json \ "success" \ "taxPayerDisplayResponse" \ "mtdId").as[String] shouldBe validMtditid
     }
   }
 }
