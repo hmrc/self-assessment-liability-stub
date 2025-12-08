@@ -106,8 +106,7 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
               Future.successful(BadGateway(Json.toJson(error)))
 
             case u if u == badUtrHipServiceUnavailable =>
-              val error =
-                createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
+              val error = createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
               Future.successful(ServiceUnavailable(Json.toJson(error)))
 
             case u if u == badUtrHipInternalServiceError =>
@@ -146,6 +145,17 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
               )
               val json = Json.toJson(hipResponse)
               Future.successful(Ok(json))
+            case u if u == utrWithOnlyBalanceDetails =>
+              val minimalHipResponseJson: JsValue = Json.obj(
+                "balanceDetails" -> Json.obj(
+                  "totalOverdueBalance" -> 0,
+                  "totalPayableBalance" -> 0,
+                  "totalPendingBalance" -> 0,
+                  "totalBalance" -> 0,
+                  "totalCreditAvailable" -> 0
+                )
+              )
+              Future.successful(Ok(minimalHipResponseJson))
             case _ =>
               try {
                 val hipResponse: HipResponse = service.generateHipResponse(dateFrom, dateTo)

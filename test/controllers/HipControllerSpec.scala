@@ -19,11 +19,12 @@ package controllers
 import controllers.HipControllerSpec.sampleHipResponse
 import models.*
 import org.mockito.Mockito.when
+import org.scalatest.matchers.must.Matchers.mustEqual
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import services.HipService
@@ -83,6 +84,24 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
       (json \ "balanceDetails" \ "totalPayableBalance").as[Int] should be > 0
       (json \ "balanceDetails" \ "totalPendingBalance").as[Int] should be > 0
+    }
+
+    "return 200 with only balance details in payload for a set utr" in {
+      val result =
+        controller.getSelfAssessmentData(utrWithOnlyBalanceDetails, validFromDate, validToDate)(
+          fakeRequest
+        )
+      val minimalHipResponseJson: JsValue = Json.obj(
+        "balanceDetails" -> Json.obj(
+          "totalOverdueBalance" -> 0,
+          "totalPayableBalance" -> 0,
+          "totalPendingBalance" -> 0,
+          "totalBalance" -> 0,
+          "totalCreditAvailable" -> 0
+        )
+      )
+      status(result) shouldBe OK
+      contentAsJson(result) mustEqual minimalHipResponseJson
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
