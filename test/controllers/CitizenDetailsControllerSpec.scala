@@ -54,6 +54,14 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
       )
     }
 
+    "return 200 for a utr that will result in server error in MTD look up service" in {
+      val result = controller.getNino(badUtrNinoServerError)(fakeRequest)
+      status(result) shouldBe Status.OK
+      contentAsJson(result) shouldBe Json.parse(
+        controller.generateSuccessResponse(List(invalidNinoServerError))
+      )
+    }
+
     "return 200 for a utr that will result in service unavailable in MTD look up service" in {
       val result = controller.getNino(badUtrNinoServiceUnavailable)(fakeRequest)
       status(result) shouldBe Status.OK

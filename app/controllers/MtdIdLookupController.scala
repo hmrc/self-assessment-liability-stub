@@ -48,6 +48,12 @@ class MtdIdLookupController @Inject() (cc: ControllerComponents) extends Backend
         response = List(FailureDetail("SERVICE_UNAVAILABLE", "Service is currently unavailable."))
       )
       Future.successful(ServiceUnavailable(Json.toJson(errorResponse)))
+    } else if (nino.equalsIgnoreCase(invalidNinoServerError)) {
+      val errorResponse = HipErrorResponse(
+        origin = "HIP",
+        response = List(FailureDetail("INTERNAL_SERVER_ERROR", "Internal server error."))
+      )
+      Future.successful(InternalServerError(Json.toJson(errorResponse)))
     } else if (nino.equalsIgnoreCase(invalidNinoETMPValidationError)) {
       val errors = errorCodeMap.toSeq
       val (code, text) = errors(scala.util.Random.nextInt(errors.length))
