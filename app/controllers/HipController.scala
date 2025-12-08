@@ -106,7 +106,8 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
               Future.successful(BadGateway(Json.toJson(error)))
 
             case u if u == badUtrHipServiceUnavailable =>
-              val error = createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
+              val error =
+                createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
               Future.successful(ServiceUnavailable(Json.toJson(error)))
 
             case u if u == badUtrHipInternalServiceError =>
