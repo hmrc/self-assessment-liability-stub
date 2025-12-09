@@ -16,6 +16,7 @@
 
 package controllers
 
+import models.{FailureDetail, HipErrorResponse, ResponseWrapper}
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -27,15 +28,70 @@ import scala.concurrent.Future
 @Singleton()
 class MtdIdLookupController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
+  private val errorCodeMap = Map(
+    "001" -> "REGIME missing or invalid",
+    "006" -> "Subscription data not found",
+    "007" -> "Your request cannot be processed, please contact the help line",
+    "008" -> "ID not found"
+  )
+
   def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
-    if (nino.equalsIgnoreCase(invalidNino)) {
-      Future.successful(
-        BadRequest(Json.obj("message" -> "Invalid national insurance number supplied"))
+    if (nino.equalsIgnoreCase(invalidNinoBadRequest)) {
+      val errorResponse = HipErrorResponse(
+        origin = "HIP",
+        response = ResponseWrapper(failures =
+          List(FailureDetail("BAD_REQUEST", "Invalid request format or parameters."))
+        )
       )
-    } else if (nino.equalsIgnoreCase(badNinoServerError)) {
-      Future.successful(InternalServerError(Json.obj("message" -> "Service currently unavailable")))
+
+      Future.successful(BadRequest(Json.toJson(errorResponse)))
+    } else if (nino.equalsIgnoreCase(invalidNinoServiceUnavailable)) {
+      val errorResponse = HipErrorResponse(
+        origin = "HIP",
+        response = ResponseWrapper(failures =
+          List(FailureDetail("SERVICE_UNAVAILABLE", "Service is currently unavailable."))
+        )
+      )
+      Future.successful(ServiceUnavailable(Json.toJson(errorResponse)))
+    } else if (nino.equalsIgnoreCase(invalidNinoServerError)) {
+      val errorResponse = HipErrorResponse(
+        origin = "HIP",
+        response = ResponseWrapper(failures =
+          List(FailureDetail("INTERNAL_SERVER_ERROR", "Internal server error."))
+        )
+      )
+      Future.successful(InternalServerError(Json.toJson(errorResponse)))
+    } else if (nino.equalsIgnoreCase(invalidNinoETMPValidationError)) {
+      val errors = errorCodeMap.toSeq
+      val (code, text) = errors(scala.util.Random.nextInt(errors.length))
+
+      val errorResponse = Json.obj(
+        "errors" -> Json.arr(
+          Json.obj(
+            "processingDate" -> java.time.Instant.now().toString,
+            "code" -> code,
+            "text" -> text
+          )
+        )
+      )
+
+      Future.successful(UnprocessableEntity(errorResponse))
     } else {
-      Future.successful(Ok(Json.obj("mtdbsa" -> validMtditid)))
+      val successResponse = Json.obj(
+        "success" -> Json.obj(
+          "processingDate" -> java.time.Instant.now().toString,
+          "taxPayerDisplayResponse" -> Json.obj(
+            "safeId" -> "ZX1135522140666",
+            "nino" -> nino,
+            "mtdId" -> validMtditid,
+            "yearOfMigration" -> "2025",
+            "propertyIncomeFlag" -> true,
+            "businessData" -> Json.arr(),
+            "propertyData" -> Json.arr()
+          )
+        )
+      )
+      Future.successful(Ok(successResponse))
     }
   }
 }
