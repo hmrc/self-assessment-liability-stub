@@ -74,6 +74,10 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
       case u if u == badUtrMultiple =>
         val validNinos = List(validNino1, validNino2)
         Future.successful(InternalServerError(Json.parse(generateSuccessResponse(validNinos))))
+
+      /** Returns test NINOs that trigger specific errors in subsequent calls to MTD Lookup. E.g.
+        * badUtrInvalidNino → invalidNinoBadRequest → 400 error in MTD Lookup Service.
+        */
       case u if u == badUtrInvalidNino =>
         Future.successful(
           Ok(Json.parse(generateSuccessResponse(List(invalidNinoBadRequest))))
