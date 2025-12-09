@@ -16,7 +16,7 @@
 
 package controllers
 
-import models.{FailureDetail, HipErrorResponse}
+import models.{FailureDetail, HipErrorResponse, ResponseWrapper}
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -39,19 +39,26 @@ class MtdIdLookupController @Inject() (cc: ControllerComponents) extends Backend
     if (nino.equalsIgnoreCase(invalidNinoBadRequest)) {
       val errorResponse = HipErrorResponse(
         origin = "HIP",
-        response = List(FailureDetail("BAD_REQUEST", "Invalid request format or parameters."))
+        response = ResponseWrapper(failures =
+          List(FailureDetail("BAD_REQUEST", "Invalid request format or parameters."))
+        )
       )
+
       Future.successful(BadRequest(Json.toJson(errorResponse)))
     } else if (nino.equalsIgnoreCase(invalidNinoServiceUnavailable)) {
       val errorResponse = HipErrorResponse(
         origin = "HIP",
-        response = List(FailureDetail("SERVICE_UNAVAILABLE", "Service is currently unavailable."))
+        response = ResponseWrapper(failures =
+          List(FailureDetail("SERVICE_UNAVAILABLE", "Service is currently unavailable."))
+        )
       )
       Future.successful(ServiceUnavailable(Json.toJson(errorResponse)))
     } else if (nino.equalsIgnoreCase(invalidNinoServerError)) {
       val errorResponse = HipErrorResponse(
         origin = "HIP",
-        response = List(FailureDetail("INTERNAL_SERVER_ERROR", "Internal server error."))
+        response = ResponseWrapper(failures =
+          List(FailureDetail("INTERNAL_SERVER_ERROR", "Internal server error."))
+        )
       )
       Future.successful(InternalServerError(Json.toJson(errorResponse)))
     } else if (nino.equalsIgnoreCase(invalidNinoETMPValidationError)) {
@@ -59,12 +66,15 @@ class MtdIdLookupController @Inject() (cc: ControllerComponents) extends Backend
       val (code, text) = errors(scala.util.Random.nextInt(errors.length))
 
       val errorResponse = Json.obj(
-        "errors" -> Json.obj(
-          "processingDate" -> java.time.Instant.now().toString,
-          "code" -> code,
-          "text" -> text
+        "errors" -> Json.arr(
+          Json.obj(
+            "processingDate" -> java.time.Instant.now().toString,
+            "code" -> code,
+            "text" -> text
+          )
         )
       )
+
       Future.successful(UnprocessableEntity(errorResponse))
     } else {
       val successResponse = Json.obj(

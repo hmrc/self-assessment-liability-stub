@@ -55,8 +55,9 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe Status.BAD_REQUEST
       val json = contentAsJson(result)
       (json \ "origin").as[String] shouldBe "HIP"
-      (json \ "response" \ 0 \ "type").as[String] shouldBe "BAD_REQUEST"
-      (json \ "response" \ 0 \ "reason").as[String] shouldBe "Invalid request format or parameters."
+      (json \ "response" \ "failures" \ 0 \ "type").as[String] shouldBe "BAD_REQUEST"
+      (json \ "response" \ "failures" \ 0 \ "reason")
+        .as[String] shouldBe "Invalid request format or parameters."
     }
 
     "return 503 SERVICE_UNAVAILABLE with correct error message when service is unavailable" in {
@@ -64,8 +65,8 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe Status.SERVICE_UNAVAILABLE
       val json = contentAsJson(result)
       (json \ "origin").as[String] shouldBe "HIP"
-      (json \ "response" \ 0 \ "type").as[String] shouldBe "SERVICE_UNAVAILABLE"
-      (json \ "response" \ 0 \ "reason")
+      (json \ "response" \ "failures" \ 0 \ "type").as[String] shouldBe "SERVICE_UNAVAILABLE"
+      (json \ "response" \ "failures" \ 0 \ "reason")
         .as[String] shouldBe "Service is currently unavailable."
     }
 
@@ -74,8 +75,8 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
       (json \ "origin").as[String] shouldBe "HIP"
-      (json \ "response" \ 0 \ "type").as[String] shouldBe "INTERNAL_SERVER_ERROR"
-      (json \ "response" \ 0 \ "reason")
+      (json \ "response" \ "failures" \ 0 \ "type").as[String] shouldBe "INTERNAL_SERVER_ERROR"
+      (json \ "response" \ "failures" \ 0 \ "reason")
         .as[String] shouldBe "Internal server error."
     }
 
@@ -84,8 +85,8 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe Status.UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
 
-      val code = (json \ "errors" \ "code").as[String]
-      val text = (json \ "errors" \ "text").as[String]
+      val code = (json \ "errors" \ 0 \ "code").as[String]
+      val text = (json \ "errors" \ 0 \ "text").as[String]
 
       errorCodeMap should contain key code
       errorCodeMap(code) shouldBe text
