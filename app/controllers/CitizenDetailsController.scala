@@ -49,7 +49,6 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
   }
 
   def getNino(utr: String): Action[AnyContent] = Action.async { implicit request =>
-    val validNinos = List(validNino1, validNino2)
     val message: String =
       if utrErrorList.contains(utr) then
         s"Calling CID with $utr which is a test data that will result in an error"
@@ -73,13 +72,29 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
           NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))
         )
       case u if u == badUtrMultiple =>
+        val validNinos = List(validNino1, validNino2)
         Future.successful(InternalServerError(Json.parse(generateSuccessResponse(validNinos))))
+
+      /** Returns test NINOs that trigger specific errors in subsequent calls to MTD Lookup. E.g.
+        * badUtrInvalidNino → invalidNinoBadRequest → 400 error in MTD Lookup Service.
+        */
       case u if u == badUtrInvalidNino =>
-        Future.successful(Ok(Json.parse(generateSuccessResponse(List(invalidNino)))))
+        Future.successful(
+          Ok(Json.parse(generateSuccessResponse(List(invalidNinoBadRequest))))
+        )
+      case u if u == badUtrNinoServiceUnavailable =>
+        Future.successful(
+          Ok(Json.parse(generateSuccessResponse(List(invalidNinoServiceUnavailable))))
+        )
       case u if u == badUtrNinoServerError =>
-        Future.successful(Ok(Json.parse(generateSuccessResponse(List(badNinoServerError)))))
+        Future.successful(
+          Ok(Json.parse(generateSuccessResponse(List(invalidNinoServerError))))
+        )
+      case u if u == badUtrNinoETMPValidationError =>
+        Future.successful(
+          Ok(Json.parse(generateSuccessResponse(List(invalidNinoETMPValidationError))))
+        )
       case _ => Future.successful(Ok(Json.parse(generateSuccessResponse(List(validNino1)))))
     }
   }
-
 }

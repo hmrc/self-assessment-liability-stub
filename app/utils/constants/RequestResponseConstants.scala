@@ -20,7 +20,9 @@ object RequestResponseConstants {
   final val noNinoFoundForUtr: String = "1100000404"
   final val badUtrMultiple: String = "1100000500"
   final val badUtrInvalidNino: String = "2200000400"
+  final val badUtrNinoServiceUnavailable: String = "2200000503"
   final val badUtrNinoServerError: String = "2200000500"
+  final val badUtrNinoETMPValidationError: String = "2200000422"
   final val badUtrHipInvalidCorrelationId: String = "3300000400"
   final val badUtrHipUnauthorised: String = "3300000401"
   final val badUtrHipForbidden: String = "3300000403"
@@ -37,7 +39,6 @@ object RequestResponseConstants {
     badUtrHipInvalidCorrelationId,
     badUtrHipExternalServiceError,
     badUtrHipServerError,
-    badUtrNinoServerError,
     noNinoFoundForUtr,
     badUtrHipUtrNotFound,
     badUtrHipForbidden,
@@ -51,8 +52,10 @@ object RequestResponseConstants {
   )
   final val validNino1: String = "GG000000X"
   final val validNino2: String = "GG000000Z"
-  final val invalidNino: String = "NI0000400"
-  final val badNinoServerError: String = "NI0000500"
+  final val invalidNinoBadRequest: String = "NI0000400"
+  final val invalidNinoServiceUnavailable: String = "NI0000503"
+  final val invalidNinoETMPValidationError: String = "NI0000422"
+  final val invalidNinoServerError: String = "NI0000500"
 
   final val validMtditid: String = "XQIT00000000001"
 }
