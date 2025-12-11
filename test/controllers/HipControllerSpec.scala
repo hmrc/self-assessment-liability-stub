@@ -19,11 +19,12 @@ package controllers
 import controllers.HipControllerSpec.sampleHipResponse
 import models.*
 import org.mockito.Mockito.when
+import org.scalatest.matchers.must.Matchers.mustEqual
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import services.HipService
@@ -31,10 +32,17 @@ import utils.constants.RequestResponseConstants.*
 
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import java.util.UUID
 
 class HipControllerSpec extends AnyWordSpec with Matchers {
   private val mockService: HipService = mock[HipService]
+  private val correlationId = UUID.randomUUID.toString
   private val fakeRequest = FakeRequest("GET", "/")
+    .withHeaders(
+      "Authorization" -> "Basic dGVzdDp0ZXN0",
+      "Content-Type" -> "application/json",
+      "CorrelationId" -> correlationId
+    )
   private val controller = new HipController(Helpers.stubControllerComponents(), mockService)
   private val validUtr: String = "1234567890"
   private val validFromDate: String = "2024-01-01"
@@ -76,6 +84,24 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
 
       (json \ "balanceDetails" \ "totalPayableBalance").as[Int] should be > 0
       (json \ "balanceDetails" \ "totalPendingBalance").as[Int] should be > 0
+    }
+
+    "return 200 with only balance details in payload for a set utr" in {
+      val result =
+        controller.getSelfAssessmentData(utrWithOnlyBalanceDetails, validFromDate, validToDate)(
+          fakeRequest
+        )
+      val minimalHipResponseJson: JsValue = Json.obj(
+        "balanceDetails" -> Json.obj(
+          "totalOverdueBalance" -> 0,
+          "totalPayableBalance" -> 0,
+          "totalPendingBalance" -> 0,
+          "totalBalance" -> 0,
+          "totalCreditAvailable" -> 0
+        )
+      )
+      status(result) shouldBe OK
+      contentAsJson(result) mustEqual minimalHipResponseJson
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
@@ -207,6 +233,77 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
         createErrorResponse("HIP", None, "SERVICE_UNAVAILABLE", "Service unavailable")
       )
     }
+
+    "return 400 when Authorization header is missing" in {
+      val requestWithoutAuth = FakeRequest("GET", "/")
+        .withHeaders(
+          "Content-Type" -> "application/json",
+          "CorrelationId" -> correlationId
+        )
+
+      val result =
+        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(requestWithoutAuth)
+      status(result) shouldBe Status.BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse("HIP", None, "MISSING_HEADER", "Authorization header is required")
+      )
+    }
+
+    "return 400 when CorrelationId header is missing" in {
+      val requestWithoutAuth = FakeRequest("GET", "/")
+        .withHeaders(
+          "Authorization" -> "Basic dGVzdDp0ZXN0",
+          "Content-Type" -> "application/json"
+        )
+
+      val result =
+        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(requestWithoutAuth)
+      status(result) shouldBe Status.BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse(
+          "HIP",
+          None,
+          "MISSING_HEADER",
+          "Correlation-ID header is required and must be in UUID format"
+        )
+      )
+    }
+
+    "return 400 when Content-Type header is missing" in {
+      val requestWithoutAuth = FakeRequest("GET", "/")
+        .withHeaders(
+          "CorrelationId" -> correlationId,
+          "Authorization" -> "Basic dGVzdDp0ZXN0"
+        )
+
+      val result =
+        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(requestWithoutAuth)
+      status(result) shouldBe Status.BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse("HIP", None, "MISSING_HEADER", "Content-Type header is required")
+      )
+    }
+
+    "return 400 when correlationId not in UUID format" in {
+      val requestWithoutAuth = FakeRequest("GET", "/")
+        .withHeaders(
+          "Content-Type" -> "application/json",
+          "CorrelationId" -> "test-correlation-id",
+          "Authorization" -> "Basic dGVzdDp0ZXN0"
+        )
+
+      val result =
+        controller.getSelfAssessmentData(validUtr, validFromDate, validToDate)(requestWithoutAuth)
+      status(result) shouldBe Status.BAD_REQUEST
+      contentAsJson(result) shouldBe Json.toJson(
+        createErrorResponse(
+          "HIP",
+          None,
+          "MISSING_HEADER",
+          "Correlation-ID header is required and must be in UUID format"
+        )
+      )
+    }
   }
 }
 
@@ -257,7 +354,7 @@ object HipControllerSpec {
     paymentHistoryDetails = List(
       PaymentHistoryDetails(
         paymentAmount = 500.00,
-        paymentReference = "payment-123",
+        paymentReference = Some("payment-123"),
         paymentMethod = Some("bank transfer"),
         paymentDate = LocalDate.of(2023, 2, 15),
         processedDate = Some(LocalDate.of(2023, 2, 16)),

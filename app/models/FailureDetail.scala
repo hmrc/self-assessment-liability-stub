@@ -16,25 +16,18 @@
 
 package models
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Format, Json}
 
-import java.time.LocalDate
+case class HipErrorResponse(origin: String, response: ResponseWrapper)
+case class ResponseWrapper(failures: List[FailureDetail])
+case class FailureDetail(`type`: String, reason: String)
 
-case class ChargeDetails(
-    chargeId: String,
-    creationDate: LocalDate,
-    chargeType: String,
-    chargeAmount: BigDecimal,
-    outstandingAmount: BigDecimal,
-    taxYear: String,
-    dueDate: LocalDate,
-    outstandingInterestDue: Option[BigDecimal],
-    accruingInterest: Option[BigDecimal],
-    accruingInterestPeriod: Option[AccruingInterestPeriod],
-    accruingInterestRate: Option[BigDecimal],
-    amendments: List[Amendment] = List.empty
-)
-
-object ChargeDetails {
-  implicit val format: OFormat[ChargeDetails] = Json.format[ChargeDetails]
+object HipErrorResponse {
+  implicit val errorResponseFormat: Format[HipErrorResponse] = Json.format
+}
+object ResponseWrapper {
+  implicit val responseWrapperFormat: Format[ResponseWrapper] = Json.format
+}
+object FailureDetail {
+  implicit val failureDetailFormat: Format[FailureDetail] = Json.format
 }
