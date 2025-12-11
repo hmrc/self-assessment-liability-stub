@@ -276,7 +276,7 @@ object HipControllerSpec {
     paymentHistoryDetails = List(
       PaymentHistoryDetails(
         paymentAmount = 500.00,
-        paymentReference = "payment-123",
+        paymentReference = Some("payment-123"),
         paymentMethod = Some("bank transfer"),
         paymentDate = LocalDate.of(2023, 2, 15),
         processedDate = Some(LocalDate.of(2023, 2, 16)),

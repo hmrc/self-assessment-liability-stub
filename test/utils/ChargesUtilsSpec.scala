@@ -28,7 +28,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
   val today: LocalDate = LocalDate.now()
   val payments = PaymentHistoryDetails(
     paymentAmount = BigDecimal(100.00),
-    paymentReference = "payment-123",
+    paymentReference = Some("payment-123"),
     paymentMethod = Some("bank transfer"),
     paymentDate = today.minusDays(46),
     processedDate = Some(today.minusDays(40)),
@@ -58,7 +58,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
       val payments = List(
         PaymentHistoryDetails(
           paymentAmount = BigDecimal(100.00),
-          paymentReference = "payment-123",
+          paymentReference = Some("payment-123"),
           paymentMethod = Some("bank transfer"),
           paymentDate = today.minusDays(5),
           processedDate = Some(today),
@@ -66,7 +66,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
         ),
         PaymentHistoryDetails(
           paymentAmount = BigDecimal(50.00),
-          paymentReference = "payment-456",
+          paymentReference = Some("payment-456"),
           paymentMethod = Some("bank transfer"),
           paymentDate = today.minusDays(50),
           processedDate = Some(today.minusDays(44)),
@@ -74,7 +74,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
         ),
         PaymentHistoryDetails(
           paymentAmount = BigDecimal(500.00),
-          paymentReference = "payment-789",
+          paymentReference = Some("payment-789"),
           paymentMethod = Some("bank transfer"),
           paymentDate = today.minusDays(1),
           processedDate = Some(today),
