@@ -16,7 +16,14 @@
 
 package controllers
 
-import models.{BalanceDetails, HipError, HipErrorDetails, HipResponse, HipResponseError}
+import models.{
+  BalanceDetails,
+  HipError,
+  HipErrorDetails,
+  HipResponse,
+  HipResponseError,
+  PaymentHistoryDetails
+}
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result}
@@ -25,6 +32,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.ResponseGenerator.today
 import utils.constants.RequestResponseConstants.*
 
+import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
@@ -157,6 +165,33 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
                 )
               )
               Future.successful(Ok(minimalHipResponseJson))
+            case u if u == badUtrWithoutPaymentReference =>
+              val hipResponse: HipResponse = HipResponse(
+                balanceDetails = BalanceDetails(
+                  totalOverdueBalance = 0,
+                  totalPayableBalance = 100,
+                  earliestPayableDueDate = Some(today.plusDays(Random.nextInt(30))),
+                  totalPendingBalance = 100,
+                  earliestPendingDueDate = Some(today.plusDays(31 + Random.nextInt(150))),
+                  totalBalance = 200,
+                  totalCreditAvailable = 0,
+                  codedOutDetail = List.empty
+                ),
+                chargeDetails = List.empty,
+                refundDetails = List.empty,
+                paymentHistoryDetails = List(
+                  PaymentHistoryDetails(
+                    paymentAmount = 500.00,
+                    paymentReference = None,
+                    paymentMethod = Some("bank transfer"),
+                    paymentDate = LocalDate.of(2023, 2, 15),
+                    processedDate = Some(LocalDate.of(2023, 2, 16)),
+                    allocationReference = List("charge-123")
+                  )
+                )
+              )
+              val json = Json.toJson(hipResponse)
+              Future.successful(Ok(json))
             case _ =>
               try {
                 val hipResponse: HipResponse = service.generateHipResponse(dateFrom, dateTo)
