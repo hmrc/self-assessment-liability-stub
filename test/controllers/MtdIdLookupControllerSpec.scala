@@ -16,11 +16,16 @@
 
 package controllers
 
+import org.scalatest.TestData
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.play.guice.{GuiceOneAppPerSuite, GuiceOneAppPerTest}
+import play.api.Application
 import play.api.http.Status
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.mvc.{ActionTransformer, Request}
 import play.api.test.Helpers.*
-import play.api.test.{FakeRequest, Helpers}
+import play.api.test.{FakeRequest, Helpers, Injecting}
 import utils.constants.RequestResponseConstants.{
   invalidNinoBadRequest,
   invalidNinoETMPValidationError,
@@ -29,10 +34,34 @@ import utils.constants.RequestResponseConstants.{
   validMtditid
 }
 
-class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
+import scala.concurrent.{ExecutionContext, Future}
+import play.api.inject.bind
+
+class MtdIdLookupControllerSpec
+    extends AnyWordSpec
+    with GuiceOneAppPerTest
+    with Matchers
+    with Injecting {
 
   private val fakeRequest = FakeRequest("GET", "/")
-  private val controller = new MtdIdLookupController(Helpers.stubControllerComponents())
+
+  val extractedMtdItId = "abcd1234"
+
+  implicit override def newAppForTest(testData: TestData): Application = {
+    val mtdItIdAuthFunction = new MtdItIdAuthTransformer {
+      override def transform[A](request: Request[A]): Future[RequestWithMtdId[A]] = {
+        Future.successful(RequestWithMtdId(Option(extractedMtdItId), request))
+      }
+
+      override protected def executionContext: ExecutionContext = ExecutionContext.global
+    }
+
+    val extractMtdItId = testData.name.contains("extractMtdItId enabled")
+    new GuiceApplicationBuilder()
+      .configure("features.extractMtdItId" -> extractMtdItId)
+      .overrides(bind[MtdItIdAuthTransformer].toInstance(mtdItIdAuthFunction))
+      .build()
+  }
 
   private val errorCodeMap = Map(
     "001" -> "REGIME missing or invalid",
@@ -42,7 +71,18 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
   )
 
   "GET /" should {
+
+    "return mtdItId from request with extractMtdItId enabled" in {
+      val controller = inject[MtdIdLookupController]
+      val result = controller.getMtdId("ss686868d")(fakeRequest)
+      status(result) shouldBe Status.OK
+      val json = contentAsJson(result)
+
+      (json \ "success" \ "taxPayerDisplayResponse" \ "mtdId").as[String] shouldBe extractedMtdItId
+    }
+
     "return 200 with correct mtdId for a valid nino" in {
+      val controller = inject[MtdIdLookupController]
       val result = controller.getMtdId("ss686868d")(fakeRequest)
       status(result) shouldBe Status.OK
       val json = contentAsJson(result)
@@ -51,6 +91,7 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid nino" in {
+      val controller = inject[MtdIdLookupController]
       val result = controller.getMtdId(invalidNinoBadRequest)(fakeRequest)
       status(result) shouldBe Status.BAD_REQUEST
       val json = contentAsJson(result)
@@ -61,6 +102,7 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 503 SERVICE_UNAVAILABLE with correct error message when service is unavailable" in {
+      val controller = inject[MtdIdLookupController]
       val result = controller.getMtdId(invalidNinoServiceUnavailable)(fakeRequest)
       status(result) shouldBe Status.SERVICE_UNAVAILABLE
       val json = contentAsJson(result)
@@ -71,6 +113,7 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 500 INTERNAL_SERVER_ERROR with correct error message when there is a internal service error" in {
+      val controller = inject[MtdIdLookupController]
       val result = controller.getMtdId(invalidNinoServerError)(fakeRequest)
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
@@ -81,6 +124,7 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return error response with random error code and description" in {
+      val controller = inject[MtdIdLookupController]
       val result = controller.getMtdId(invalidNinoETMPValidationError)(fakeRequest)
       status(result) shouldBe Status.UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
@@ -93,6 +137,7 @@ class MtdIdLookupControllerSpec extends AnyWordSpec with Matchers {
     }
 
     "return 200 OK with success response for valid nino" in {
+      val controller = inject[MtdIdLookupController]
       val validNino = "AS243900B"
       val result = controller.getMtdId(validNino)(fakeRequest)
       status(result) shouldBe Status.OK

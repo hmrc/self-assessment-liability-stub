@@ -16,6 +16,7 @@
 
 package controllers
 
+import config.AppConfig
 import models.{FailureDetail, HipErrorResponse, ResponseWrapper}
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
@@ -26,7 +27,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
 @Singleton()
-class MtdIdLookupController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
+class MtdIdLookupController @Inject() (
+    mtdItIdAuthFunction: MtdItIdAuthTransformer,
+    configuration: AppConfig,
+    cc: ControllerComponents
+) extends BackendController(cc) {
 
   private val errorCodeMap = Map(
     "001" -> "REGIME missing or invalid",
@@ -35,63 +40,68 @@ class MtdIdLookupController @Inject() (cc: ControllerComponents) extends Backend
     "008" -> "ID not found"
   )
 
-  def getMtdId(nino: String): Action[AnyContent] = Action.async { implicit request =>
-    if (nino.equalsIgnoreCase(invalidNinoBadRequest)) {
-      val errorResponse = HipErrorResponse(
-        origin = "HIP",
-        response = ResponseWrapper(failures =
-          List(FailureDetail("BAD_REQUEST", "Invalid request format or parameters."))
+  def getMtdId(nino: String): Action[AnyContent] = (Action andThen mtdItIdAuthFunction).async {
+    implicit request =>
+      if (nino.equalsIgnoreCase(invalidNinoBadRequest)) {
+        val errorResponse = HipErrorResponse(
+          origin = "HIP",
+          response = ResponseWrapper(failures =
+            List(FailureDetail("BAD_REQUEST", "Invalid request format or parameters."))
+          )
         )
-      )
 
-      Future.successful(BadRequest(Json.toJson(errorResponse)))
-    } else if (nino.equalsIgnoreCase(invalidNinoServiceUnavailable)) {
-      val errorResponse = HipErrorResponse(
-        origin = "HIP",
-        response = ResponseWrapper(failures =
-          List(FailureDetail("SERVICE_UNAVAILABLE", "Service is currently unavailable."))
+        Future.successful(BadRequest(Json.toJson(errorResponse)))
+      } else if (nino.equalsIgnoreCase(invalidNinoServiceUnavailable)) {
+        val errorResponse = HipErrorResponse(
+          origin = "HIP",
+          response = ResponseWrapper(failures =
+            List(FailureDetail("SERVICE_UNAVAILABLE", "Service is currently unavailable."))
+          )
         )
-      )
-      Future.successful(ServiceUnavailable(Json.toJson(errorResponse)))
-    } else if (nino.equalsIgnoreCase(invalidNinoServerError)) {
-      val errorResponse = HipErrorResponse(
-        origin = "HIP",
-        response = ResponseWrapper(failures =
-          List(FailureDetail("INTERNAL_SERVER_ERROR", "Internal server error."))
+        Future.successful(ServiceUnavailable(Json.toJson(errorResponse)))
+      } else if (nino.equalsIgnoreCase(invalidNinoServerError)) {
+        val errorResponse = HipErrorResponse(
+          origin = "HIP",
+          response = ResponseWrapper(failures =
+            List(FailureDetail("INTERNAL_SERVER_ERROR", "Internal server error."))
+          )
         )
-      )
-      Future.successful(InternalServerError(Json.toJson(errorResponse)))
-    } else if (nino.equalsIgnoreCase(invalidNinoETMPValidationError)) {
-      val errors = errorCodeMap.toSeq
-      val (code, text) = errors(scala.util.Random.nextInt(errors.length))
+        Future.successful(InternalServerError(Json.toJson(errorResponse)))
+      } else if (nino.equalsIgnoreCase(invalidNinoETMPValidationError)) {
+        val errors = errorCodeMap.toSeq
+        val (code, text) = errors(scala.util.Random.nextInt(errors.length))
 
-      val errorResponse = Json.obj(
-        "errors" -> Json.arr(
-          Json.obj(
+        val errorResponse = Json.obj(
+          "errors" -> Json.arr(
+            Json.obj(
+              "processingDate" -> java.time.Instant.now().toString,
+              "code" -> code,
+              "text" -> text
+            )
+          )
+        )
+
+        Future.successful(UnprocessableEntity(errorResponse))
+      } else {
+        val mtdItId =
+          if configuration.extractMtdItId then request.mtdItId.getOrElse(validMtditid)
+          else validMtditid
+
+        val successResponse = Json.obj(
+          "success" -> Json.obj(
             "processingDate" -> java.time.Instant.now().toString,
-            "code" -> code,
-            "text" -> text
+            "taxPayerDisplayResponse" -> Json.obj(
+              "safeId" -> "ZX1135522140666",
+              "nino" -> nino,
+              "mtdId" -> mtdItId,
+              "yearOfMigration" -> "2025",
+              "propertyIncomeFlag" -> true,
+              "businessData" -> Json.arr(),
+              "propertyData" -> Json.arr()
+            )
           )
         )
-      )
-
-      Future.successful(UnprocessableEntity(errorResponse))
-    } else {
-      val successResponse = Json.obj(
-        "success" -> Json.obj(
-          "processingDate" -> java.time.Instant.now().toString,
-          "taxPayerDisplayResponse" -> Json.obj(
-            "safeId" -> "ZX1135522140666",
-            "nino" -> nino,
-            "mtdId" -> validMtditid,
-            "yearOfMigration" -> "2025",
-            "propertyIncomeFlag" -> true,
-            "businessData" -> Json.arr(),
-            "propertyData" -> Json.arr()
-          )
-        )
-      )
-      Future.successful(Ok(successResponse))
-    }
+        Future.successful(Ok(successResponse))
+      }
   }
 }
