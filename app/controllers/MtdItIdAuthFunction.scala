@@ -16,6 +16,7 @@
 
 package controllers
 
+import com.google.inject.{ImplementedBy, Inject, Singleton}
 import controllers.MtdItIdAuthFunction.{Mtd_Enrolment_Key, Mtd_Identifier}
 import play.api.mvc.{ActionTransformer, Request, WrappedRequest}
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
@@ -28,9 +29,11 @@ import scala.concurrent.{ExecutionContext, Future}
 case class RequestWithMtdId[A](mtdItId: Option[String], request: Request[A])
     extends WrappedRequest[A](request)
 
+@ImplementedBy(classOf[MtdItIdAuthFunction])
 trait MtdItIdAuthTransformer extends ActionTransformer[Request, RequestWithMtdId]
 
-class MtdItIdAuthFunction(val authConnector: AuthConnector)(implicit
+@Singleton
+class MtdItIdAuthFunction @Inject() (val authConnector: AuthConnector)(implicit
     val executionContext: ExecutionContext
 ) extends MtdItIdAuthTransformer
     with AuthorisedFunctions {
