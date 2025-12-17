@@ -47,7 +47,7 @@ class RefundUtilsSpec extends AnyWordSpec with Matchers {
       paymentMethod = Some("bank transfer"),
       paymentDate = today.minusMonths(6),
       processedDate = Some(today.minusMonths(6).plusDays(6)),
-      allocationReference = List("charge-123")
+      allocationReference = Some("charge-123")
     )
   "calculateInterestOrGenerateRefund method" should {
     "apply interest to charges when outstanding amount is negative" in {

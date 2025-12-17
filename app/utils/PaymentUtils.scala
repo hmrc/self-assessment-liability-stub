@@ -32,7 +32,7 @@ object PaymentUtils {
       paymentMethod = Some(randomPaymentMethod),
       paymentDate = paymentDate,
       processedDate = Some(if (paymentDateFilter.isAfter(today)) today else paymentDateFilter),
-      allocationReference = List(ResponseGenerator.generateId())
+      allocationReference = Some(ResponseGenerator.generateId())
     )
   }
 }
