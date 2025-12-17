@@ -186,7 +186,7 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
                     paymentMethod = Some("bank transfer"),
                     paymentDate = LocalDate.of(2023, 2, 15),
                     processedDate = Some(LocalDate.of(2023, 2, 16)),
-                    allocationReference = List("charge-123")
+                    allocationReference = Some("charge-123")
                   )
                 )
               )

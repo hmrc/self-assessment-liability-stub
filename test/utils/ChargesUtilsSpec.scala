@@ -32,7 +32,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
     paymentMethod = Some("bank transfer"),
     paymentDate = today.minusDays(46),
     processedDate = Some(today.minusDays(40)),
-    allocationReference = List("charge-123")
+    allocationReference = Some("charge-123")
   )
 
   "generateCharge method" should {
@@ -62,7 +62,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
           paymentMethod = Some("bank transfer"),
           paymentDate = today.minusDays(5),
           processedDate = Some(today),
-          allocationReference = List("charge-123")
+          allocationReference = Some("charge-123")
         ),
         PaymentHistoryDetails(
           paymentAmount = BigDecimal(50.00),
@@ -70,7 +70,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
           paymentMethod = Some("bank transfer"),
           paymentDate = today.minusDays(50),
           processedDate = Some(today.minusDays(44)),
-          allocationReference = List("charge-456")
+          allocationReference = Some("charge-456")
         ),
         PaymentHistoryDetails(
           paymentAmount = BigDecimal(500.00),
@@ -78,7 +78,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
           paymentMethod = Some("bank transfer"),
           paymentDate = today.minusDays(1),
           processedDate = Some(today),
-          allocationReference = List("charge-789")
+          allocationReference = Some("charge-789")
         )
       )
 
@@ -142,7 +142,7 @@ class ChargesUtilsSpec extends AnyWordSpec with Matchers {
       amendDate shouldEqual paymentWithoutProcessed.paymentDate.plusDays(6)
     }
     "generate chargeId randomly when allocationReference is empty" in {
-      val paymentsRandomChargeId = payments.copy(allocationReference = List.empty)
+      val paymentsRandomChargeId = payments.copy(allocationReference = None)
 
       val result = ChargesUtils.generateCharge(List(paymentsRandomChargeId))
       val charge = result.head

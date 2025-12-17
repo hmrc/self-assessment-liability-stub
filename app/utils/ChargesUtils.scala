@@ -61,8 +61,7 @@ object ChargesUtils {
       outstandingAmount: BigDecimal
   ): ChargeDetails = {
     ChargeDetails(
-      chargeId =
-        paymentItem.allocationReference.headOption.getOrElse(ResponseGenerator.generateId()),
+      chargeId = paymentItem.allocationReference.getOrElse(ResponseGenerator.generateId()),
       creationDate = creationDate,
       chargeType = randomChargeType,
       chargeAmount = chargeAmount,
