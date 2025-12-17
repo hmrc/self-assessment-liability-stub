@@ -18,6 +18,7 @@ package controllers
 
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import controllers.MtdItIdAuthFunction.{Mtd_Enrolment_Key, Mtd_Identifier}
+import play.api.Logging
 import play.api.mvc.{ActionTransformer, Request, WrappedRequest}
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
@@ -36,10 +37,12 @@ trait MtdItIdAuthTransformer extends ActionTransformer[Request, RequestWithMtdId
 class MtdItIdAuthFunction @Inject() (val authConnector: AuthConnector)(implicit
     val executionContext: ExecutionContext
 ) extends MtdItIdAuthTransformer
-    with AuthorisedFunctions {
+    with AuthorisedFunctions
+    with Logging {
 
   override protected def transform[A](request: Request[A]): Future[RequestWithMtdId[A]] = {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
+    logger.info(s"auth header is ${headerCarrier.authorization}")
     authorised().retrieve(allEnrolments) { enrolments =>
       val mtditid = enrolments.getEnrolment(Mtd_Enrolment_Key)
       Future.successful(

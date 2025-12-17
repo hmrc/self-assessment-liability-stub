@@ -19,23 +19,17 @@ package controllers
 import org.scalatest.TestData
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.play.guice.{GuiceOneAppPerSuite, GuiceOneAppPerTest}
+import org.scalatestplus.play.guice.GuiceOneAppPerTest
 import play.api.Application
 import play.api.http.Status
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.mvc.{ActionTransformer, Request}
+import play.api.mvc.Request
 import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers, Injecting}
-import utils.constants.RequestResponseConstants.{
-  invalidNinoBadRequest,
-  invalidNinoETMPValidationError,
-  invalidNinoServerError,
-  invalidNinoServiceUnavailable,
-  validMtditid
-}
+import utils.constants.RequestResponseConstants.*
 
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.inject.bind
 
 class MtdIdLookupControllerSpec
     extends AnyWordSpec
