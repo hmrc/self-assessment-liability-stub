@@ -37,7 +37,8 @@ trait MtdItIdAuthTransformer extends ActionTransformer[Request, RequestWithMtdId
 class MtdItIdAuthFunction @Inject() (val authConnector: AuthConnector)(implicit
     val executionContext: ExecutionContext
 ) extends MtdItIdAuthTransformer
-    with AuthorisedFunctions with Logging {
+    with AuthorisedFunctions
+    with Logging {
 
   override protected def transform[A](request: Request[A]): Future[RequestWithMtdId[A]] = {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
