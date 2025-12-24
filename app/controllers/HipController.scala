@@ -16,28 +16,19 @@
 
 package controllers
 
-import models.{
-  BalanceDetails,
-  HipError,
-  HipErrorDetails,
-  HipResponse,
-  HipResponseError,
-  PaymentHistoryDetails
-}
+import models.{HipError, HipErrorDetails, HipResponse, HipResponseError}
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result}
+import play.api.mvc.*
 import services.HipService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.ResponseGenerator.today
+import utils.constants.HipResponseConstants.*
 import utils.constants.RequestResponseConstants.*
 
-import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
-import scala.util.Random
-import java.util.UUID
 
 @Singleton()
 class HipController @Inject() (cc: ControllerComponents, service: HipService)
@@ -119,78 +110,17 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
               Future.successful(ServiceUnavailable(Json.toJson(error)))
 
             case u if u == badUtrHipInternalServiceError =>
-              val hipResponse: HipResponse = HipResponse(
-                balanceDetails = BalanceDetails(
-                  totalOverdueBalance = 0,
-                  totalPayableBalance = 100,
-                  earliestPayableDueDate = None,
-                  totalPendingBalance = 100,
-                  earliestPendingDueDate = None,
-                  totalBalance = 200,
-                  totalCreditAvailable = 0,
-                  codedOutDetail = List.empty
-                ),
-                chargeDetails = List.empty,
-                refundDetails = List.empty,
-                paymentHistoryDetails = List.empty
-              )
-              val json = Json.toJson(hipResponse)
-              Future.successful(Ok(json))
-            case u if u == goodUtrHipInternalService =>
-              val hipResponse: HipResponse = HipResponse(
-                balanceDetails = BalanceDetails(
-                  totalOverdueBalance = 0,
-                  totalPayableBalance = 100,
-                  earliestPayableDueDate = Some(today.plusDays(Random.nextInt(30))),
-                  totalPendingBalance = 100,
-                  earliestPendingDueDate = Some(today.plusDays(31 + Random.nextInt(150))),
-                  totalBalance = 200,
-                  totalCreditAvailable = 0,
-                  codedOutDetail = List.empty
-                ),
-                chargeDetails = List.empty,
-                refundDetails = List.empty,
-                paymentHistoryDetails = List.empty
-              )
-              val json = Json.toJson(hipResponse)
+
+              val json = Json.toJson(hipResponseMissingDates)
               Future.successful(Ok(json))
             case u if u == utrWithOnlyBalanceDetails =>
-              val minimalHipResponseJson: JsValue = Json.obj(
-                "balanceDetails" -> Json.obj(
-                  "totalOverdueBalance" -> 0,
-                  "totalPayableBalance" -> 0,
-                  "totalPendingBalance" -> 0,
-                  "totalBalance" -> 0,
-                  "totalCreditAvailable" -> 0
-                )
-              )
-              Future.successful(Ok(minimalHipResponseJson))
+              Future.successful(Ok(hipResponseOnlyBalanceDetails))
+            case u if u == utrWithMissingTotalBalance =>
+              Future.successful(Ok(hipResponseMisingTotalBalance))
+            case u if u == utrWithMissingChargeOutstandingAmount =>
+              Future.successful(Ok(hipResponseMissingChargeId))
             case u if u == badUtrWithoutPaymentReference =>
-              val hipResponse: HipResponse = HipResponse(
-                balanceDetails = BalanceDetails(
-                  totalOverdueBalance = 0,
-                  totalPayableBalance = 100,
-                  earliestPayableDueDate = Some(today.plusDays(Random.nextInt(30))),
-                  totalPendingBalance = 100,
-                  earliestPendingDueDate = Some(today.plusDays(31 + Random.nextInt(150))),
-                  totalBalance = 200,
-                  totalCreditAvailable = 0,
-                  codedOutDetail = List.empty
-                ),
-                chargeDetails = List.empty,
-                refundDetails = List.empty,
-                paymentHistoryDetails = List(
-                  PaymentHistoryDetails(
-                    paymentAmount = 500.00,
-                    paymentReference = None,
-                    paymentMethod = Some("bank transfer"),
-                    paymentDate = LocalDate.of(2023, 2, 15),
-                    processedDate = Some(LocalDate.of(2023, 2, 16)),
-                    allocationReference = Some("charge-123")
-                  )
-                )
-              )
-              val json = Json.toJson(hipResponse)
+              val json = Json.toJson(hipResponseNoPaymentReference)
               Future.successful(Ok(json))
             case _ =>
               try {
