@@ -68,7 +68,7 @@ object CreditUtils {
     val remainingBalance = charge.outstandingAmount - amount
     val amendment =
       Amendment(
-        amendmentDate = today.minusDays(random.nextInt(20)),
+        amendmentDate = today().minusDays(random.nextInt(20)),
         amendmentAmount = amount,
         amendmentReason = "Credit applied from overpayment",
         isPaymentRelated = true,
@@ -81,7 +81,7 @@ object CreditUtils {
 
   private def getOverdueOrFutureCharges(charges: List[ChargeDetails]): Option[ChargeDetails] = {
     val overdueChargesWithOutstanding = charges.filter { charge =>
-      charge.dueDate.isBefore(today) && charge.outstandingAmount > BigDecimal(0)
+      charge.dueDate.isBefore(today()) && charge.outstandingAmount > BigDecimal(0)
     }
 
     if (overdueChargesWithOutstanding.nonEmpty) {

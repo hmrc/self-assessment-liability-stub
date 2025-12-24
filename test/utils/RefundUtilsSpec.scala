@@ -27,11 +27,11 @@ class RefundUtilsSpec extends AnyWordSpec with Matchers {
   val charges =
     ChargeDetails(
       chargeId = "ABC12345",
-      creationDate = today.minusMonths(6),
+      creationDate = today().minusMonths(6),
       chargeType = "ITSA",
       chargeAmount = BigDecimal(200.00),
       taxYear = "2023-2024",
-      dueDate = today.minusMonths(3),
+      dueDate = today().minusMonths(3),
       amendments = List.empty,
       outstandingAmount = BigDecimal(1000.00),
       outstandingInterestDue = None,
@@ -45,8 +45,8 @@ class RefundUtilsSpec extends AnyWordSpec with Matchers {
       paymentAmount = BigDecimal(100.00),
       paymentReference = Some("payment-123"),
       paymentMethod = Some("bank transfer"),
-      paymentDate = today.minusMonths(6),
-      processedDate = Some(today.minusMonths(6).plusDays(6)),
+      paymentDate = today().minusMonths(6),
+      processedDate = Some(today().minusMonths(6).plusDays(6)),
       allocationReference = Some("charge-123")
     )
   "calculateInterestOrGenerateRefund method" should {

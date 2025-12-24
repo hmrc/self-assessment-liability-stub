@@ -26,7 +26,7 @@ import scala.util.Random
 object ResponseGenerator extends Logging {
   lazy val random = new Random()
   val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-  val today: LocalDate = ZonedDateTime.now(ZoneOffset.UTC).toLocalDate
+  def today(): LocalDate = ZonedDateTime.now(ZoneOffset.UTC).toLocalDate
 
   val randomPaymentMethod: String = {
     random.shuffle(List("bank transfer", "card", "direct debit", "cheque")).head
@@ -37,12 +37,12 @@ object ResponseGenerator extends Logging {
     val randomStatementDays = random.nextInt(29) + 1
     val defaultDate = LocalDate.of(year, randomStatementMonths, randomStatementDays)
 
-    if (year < today.getYear) {
+    if (year < today().getYear) {
       defaultDate
-    } else if (year == today.getYear) {
-      if (defaultDate.isAfter(today)) today else defaultDate
+    } else if (year == today().getYear) {
+      if (defaultDate.isAfter(today())) today() else defaultDate
     } else {
-      today
+      today()
     }
   }
 
@@ -80,7 +80,7 @@ object ResponseGenerator extends Logging {
       charges: List[ChargeDetails],
       creditLeft: BigDecimal
   ): BalanceDetails = {
-    val allOverDueCharges = charges.filter(_.dueDate.isBefore(today))
+    val allOverDueCharges = charges.filter(_.dueDate.isBefore(today()))
     val overDueChargesWithAnOutstandingAmount =
       allOverDueCharges.filter(_.outstandingAmount > BigDecimal(0))
     val getCodedOut = overDueChargesWithAnOutstandingAmount.headOption
@@ -98,10 +98,10 @@ object ResponseGenerator extends Logging {
       .map(_.outstandingAmount)
       .sum - getCodedOut.map(_.totalAmount).sum
     val allPayableCharges = charges.filter { charge =>
-      charge.dueDate.isAfter(today) && charge.dueDate.isBefore(today.plusDays(29))
+      charge.dueDate.isAfter(today()) && charge.dueDate.isBefore(today().plusDays(29))
     }
     val totalPayableBalance = allPayableCharges.map(_.outstandingAmount).sum
-    val allPendingCharges = charges.filter(_.dueDate.isAfter(today.plusDays(30)))
+    val allPendingCharges = charges.filter(_.dueDate.isAfter(today().plusDays(30)))
     val totalPendingBalance = allPendingCharges.map(_.outstandingAmount).sum
     val totalBalance = roundValue(totalOverDueBalance + totalPayableBalance + totalPendingBalance)
     BalanceDetails(

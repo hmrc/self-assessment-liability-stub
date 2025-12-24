@@ -42,7 +42,6 @@ class MtdItIdAuthFunction @Inject() (val authConnector: AuthConnector)(implicit
 
   override protected def transform[A](request: Request[A]): Future[RequestWithMtdId[A]] = {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
-    logger.info(s"auth header is ${headerCarrier.authorization}")
     authorised().retrieve(allEnrolments) { enrolments =>
       val mtditid = enrolments.getEnrolment(Mtd_Enrolment_Key)
       Future.successful(

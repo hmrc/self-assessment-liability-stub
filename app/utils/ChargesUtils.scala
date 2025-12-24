@@ -30,7 +30,7 @@ object ChargesUtils {
       payments: List[PaymentHistoryDetails]
   ): List[ChargeDetails] = {
     payments.map { paymentItem =>
-      val isNotRecentStatement: Boolean = paymentItem.paymentDate.isBefore(today.minusDays(45))
+      val isNotRecentStatement: Boolean = paymentItem.paymentDate.isBefore(today().minusDays(45))
       val creationDate = paymentItem.paymentDate.minusDays(random.between(10, 15))
       val processDate = paymentItem.processedDate.getOrElse(paymentItem.paymentDate.plusDays(6))
       val chargeAmount: BigDecimal = biasedRandomMultiplication(paymentItem.paymentAmount)

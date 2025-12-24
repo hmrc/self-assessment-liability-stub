@@ -43,7 +43,7 @@ object RefundUtils {
         case amount if amount == 0 => (yearCharges, List.empty)
         case _ =>
           val mostRecentPaymentDate =
-            getMostRecentPaymentDate(yearPayments, year, today)
+            getMostRecentPaymentDate(yearPayments, year, today())
           (yearCharges, List(generateRefund(outstandingAmount, mostRecentPaymentDate)))
       }
     }.toList
@@ -51,7 +51,7 @@ object RefundUtils {
     (updatedChargesWithRefunds.flatMap(_._1), updatedChargesWithRefunds.flatMap(_._2))
   }
 
-  private inline def isFutureDate(date: LocalDate): Boolean = date.isAfter(today)
+  private inline def isFutureDate(date: LocalDate): Boolean = date.isAfter(today())
 
   private def generateRefundDetailsModel(
       refundDate: LocalDate,
@@ -104,7 +104,7 @@ object RefundUtils {
         accruingInterest = interest,
         accruingInterestRate = Some(BigDecimal(0.05)),
         accruingInterestPeriod =
-          interest.map(_ => AccruingInterestPeriod(charge.dueDate.plusMonths(1), today)),
+          interest.map(_ => AccruingInterestPeriod(charge.dueDate.plusMonths(1), today())),
         outstandingInterestDue = interest
       )
     }
@@ -129,7 +129,7 @@ object RefundUtils {
     Some(
       roundValue(
         outstandingAmount * (BigDecimal(
-          ChronoUnit.MONTHS.between(dueDate.plusMonths(1), today)
+          ChronoUnit.MONTHS.between(dueDate.plusMonths(1), today())
         ) / BigDecimal(12)) * BigDecimal(0.05)
       )
     )

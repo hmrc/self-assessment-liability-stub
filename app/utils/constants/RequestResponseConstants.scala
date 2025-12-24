@@ -35,6 +35,8 @@ object RequestResponseConstants {
   final val goodUtrHipInternalService: String = "3300000505"
   final val badUtrWithoutPaymentReference: String = "3300000506"
   final val utrWithOnlyBalanceDetails: String = "3333333333"
+  final val utrWithMissingTotalBalance: String = "3333333331"
+  final val utrWithMissingChargeOutstandingAmount: String = "3333333332"
   final val utrErrorList: List[String] = List(
     badUtrHipInvalidCorrelationId,
     badUtrHipExternalServiceError,
