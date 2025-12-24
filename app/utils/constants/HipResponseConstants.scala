@@ -50,11 +50,16 @@ object HipResponseConstants {
   )
 
   val hipResponseMisingTotalBalance: JsValue = Json.obj(
-    "balanceDetails" -> Json.obj(
-      "totalOverdueBalance" -> 0,
-      "totalPayableBalance" -> 0,
-      "totalPendingBalance" -> 0,
-      "totalCreditAvailable" -> 0
+    "chargeDetails" -> Json.arr(
+      Json.obj(
+        "chargeId" -> "1234412321",
+        "creationDate" -> "2025-12-01",
+        "chargeType" -> "IncomeTax",
+        "chargeAmount" -> 125.00,
+        "outstandingAmount" -> 25.00,
+        "taxYear" -> "2024-25",
+        "dueDate" -> "2026-01-31"
+      )
     )
   )
 
