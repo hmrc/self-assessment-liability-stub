@@ -16,7 +16,7 @@
 
 package utils
 
-import models.{AccruingInterestPeriod, ChargeDetails, PaymentHistoryDetails, RefundDetails}
+import models.{ChargeDetails, PaymentHistoryDetails, RefundDetails}
 import utils.ResponseGenerator.{dateFormatter, random, randomPaymentMethod, roundValue, today}
 
 import java.time.LocalDate
@@ -103,9 +103,6 @@ object RefundUtils {
         outstandingAmount = charge.outstandingAmount + interest.getOrElse(0.0),
         accruingInterest = interest,
         accruingInterestRate = Some(BigDecimal(0.05)),
-        accruingInterestPeriod =
-          interest.map(_ => AccruingInterestPeriod(charge.dueDate.plusMonths(1), today())),
-        outstandingInterestDue = interest
       )
     }
   }

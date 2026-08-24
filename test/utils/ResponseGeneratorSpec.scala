@@ -59,9 +59,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
 
         val interestFields = List(
           charge.accruingInterest,
-          charge.accruingInterestRate,
-          charge.accruingInterestPeriod,
-          charge.outstandingInterestDue
+          charge.accruingInterestRate
         )
 
         interestFields.count(_.isDefined) should (be(0) or be(4))

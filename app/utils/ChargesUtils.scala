@@ -72,9 +72,7 @@ object ChargesUtils {
           generateAmendment(processDate, amendmentAmount, paymentItem)
         else List.empty,
       outstandingAmount = outstandingAmount,
-      outstandingInterestDue = None,
       accruingInterest = None,
-      accruingInterestPeriod = None,
       accruingInterestRate = None
     )
   }

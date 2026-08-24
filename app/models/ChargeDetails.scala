@@ -28,9 +28,7 @@ case class ChargeDetails(
     outstandingAmount: BigDecimal,
     taxYear: String,
     dueDate: LocalDate,
-    outstandingInterestDue: Option[BigDecimal],
     accruingInterest: Option[BigDecimal],
-    accruingInterestPeriod: Option[AccruingInterestPeriod],
     accruingInterestRate: Option[BigDecimal],
     amendments: List[Amendment] = List.empty
 )

@@ -344,9 +344,7 @@ object HipControllerSpec {
         dueDate = LocalDate.of(2024, 1, 31),
         amendments = List.empty,
         outstandingAmount = 1000.00,
-        outstandingInterestDue = None,
         accruingInterest = None,
-        accruingInterestPeriod = None,
         accruingInterestRate = None
       )
     ),
