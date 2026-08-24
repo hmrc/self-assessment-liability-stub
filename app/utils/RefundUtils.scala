@@ -102,7 +102,7 @@ object RefundUtils {
       charge.copy(
         outstandingAmount = charge.outstandingAmount + interest.getOrElse(0.0),
         accruingInterest = interest,
-        accruingInterestRate = Some(BigDecimal(0.05)),
+        accruingInterestRate = Some(BigDecimal(0.05))
       )
     }
   }
