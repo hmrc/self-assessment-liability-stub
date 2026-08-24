@@ -34,9 +34,7 @@ class RefundUtilsSpec extends AnyWordSpec with Matchers {
       dueDate = today().minusMonths(3),
       amendments = List.empty,
       outstandingAmount = BigDecimal(1000.00),
-      outstandingInterestDue = None,
       accruingInterest = None,
-      accruingInterestPeriod = None,
       accruingInterestRate = None
     )
 
