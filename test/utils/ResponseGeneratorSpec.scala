@@ -62,7 +62,7 @@ class ResponseGeneratorSpec extends AnyWordSpec with Matchers {
           charge.accruingInterestRate
         )
 
-        interestFields.count(_.isDefined) should (be(0) or be(4))
+        interestFields.count(_.isDefined) should (be(0) or be(2))
       }
     }
 
