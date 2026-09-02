@@ -67,6 +67,8 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
         Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP120333A")))))
       case u if u == "1405365362" =>
         Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP071433A")))))
+      case u if u == "9541784744" =>
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List("GY002216D")))))
       case u if u == noNinoFoundForUtr =>
         Future.successful(
           NotFound(Json.obj("message" -> "No record for the given SaUtr is found."))
