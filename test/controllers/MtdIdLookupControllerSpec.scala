@@ -123,8 +123,8 @@ class MtdIdLookupControllerSpec
       status(result) shouldBe Status.UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
 
-      val code = (json \ "errors" \ 0 \ "code").as[String]
-      val text = (json \ "errors" \ 0 \ "text").as[String]
+      val code = (json \ "errors" \ "code").as[String]
+      val text = (json \ "errors" \ "text").as[String]
 
       errorCodeMap should contain key code
       errorCodeMap(code) shouldBe text
