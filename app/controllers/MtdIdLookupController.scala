@@ -72,13 +72,12 @@ class MtdIdLookupController @Inject() (
         val (code, text) = errors(scala.util.Random.nextInt(errors.length))
 
         val errorResponse = Json.obj(
-          "errors" -> Json.arr(
+          "errors" ->
             Json.obj(
               "processingDate" -> java.time.Instant.now().toString,
               "code" -> code,
               "text" -> text
             )
-          )
         )
 
         Future.successful(UnprocessableEntity(errorResponse))
