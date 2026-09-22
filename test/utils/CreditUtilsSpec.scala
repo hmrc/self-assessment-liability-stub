@@ -32,7 +32,7 @@ class CreditUtilsSpec extends AnyWordSpec with Matchers {
     creationDate = today.minusMonths(6),
     chargeType = "ITSA",
     chargeAmount = BigDecimal(1000.00),
-    taxYear = "2023-2024",
+    taxYear = "2024",
     dueDate = today.minusMonths(3),
     amendments = List.empty,
     outstandingAmount = BigDecimal(1000.00),

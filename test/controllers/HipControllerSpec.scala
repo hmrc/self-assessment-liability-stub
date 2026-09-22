@@ -340,7 +340,7 @@ object HipControllerSpec {
         creationDate = LocalDate.of(2023, 1, 15),
         chargeType = "ITSA",
         chargeAmount = 1000.00,
-        taxYear = "2023-2024",
+        taxYear = "2024",
         dueDate = LocalDate.of(2024, 1, 31),
         amendments = List.empty,
         outstandingAmount = 1000.00,
