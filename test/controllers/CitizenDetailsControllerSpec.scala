@@ -93,11 +93,11 @@ class CitizenDetailsControllerSpec extends AnyWordSpec with Matchers {
       )
     }
 
-    "return 200 with WP105333A for 1992665564" in {
+    "return 200 with AA055075C for 1992665564" in {
       val result = controller.getNino("1992665564")(fakeRequest)
       status(result) shouldBe Status.OK
       contentAsJson(result) shouldBe Json.parse(
-        controller.generateSuccessResponse(List("WP105333A"))
+        controller.generateSuccessResponse(List("AA055075C"))
       )
     }
 
