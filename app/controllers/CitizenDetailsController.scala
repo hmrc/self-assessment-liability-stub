@@ -58,7 +58,7 @@ class CitizenDetailsController @Inject() (cc: ControllerComponents)
       case u if u == "3384286946" =>
         Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP105133A")))))
       case u if u == "1992665564" =>
-        Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP105333A")))))
+        Future.successful(Ok(Json.parse(generateSuccessResponse(List("AA055075C")))))
       case u if u == "4809635190" =>
         Future.successful(Ok(Json.parse(generateSuccessResponse(List("WP105533A")))))
       case u if u == "2112635977" =>
