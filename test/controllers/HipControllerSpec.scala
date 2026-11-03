@@ -104,6 +104,23 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       contentAsJson(result) mustEqual minimalHipResponseJson
     }
 
+    "return 200 with negative balance values for a set UTR" in {
+      val result =
+        controller.getSelfAssessmentData(utrWithNegativeBalances, validFromDate, validToDate)(
+          fakeRequest
+        )
+
+      status(result) shouldBe Status.OK
+      val json = contentAsJson(result)
+
+      (json \ "balanceDetails" \ "totalOverdueBalance").as[BigDecimal] shouldBe BigDecimal(-50)
+      (json \ "balanceDetails" \ "totalPayableBalance").as[BigDecimal] shouldBe BigDecimal(-100)
+      (json \ "balanceDetails" \ "totalPendingBalance").as[BigDecimal] shouldBe BigDecimal(-75)
+      (json \ "balanceDetails" \ "totalBalance").as[BigDecimal] shouldBe BigDecimal(-225)
+      (json \ "balanceDetails" \ "totalCreditAvailable").as[BigDecimal] shouldBe BigDecimal(-25)
+      (json \ "paymentHistoryDetails" \ 0 \ "paymentAmount").as[BigDecimal] shouldBe BigDecimal(-500)
+    }
+
     "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
       val result =
         controller.getSelfAssessmentData(badUtrHipInvalidCorrelationId, validFromDate, validToDate)(

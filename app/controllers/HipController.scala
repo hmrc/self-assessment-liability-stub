@@ -122,6 +122,8 @@ class HipController @Inject() (cc: ControllerComponents, service: HipService)
             case u if u == badUtrWithoutPaymentReference =>
               val json = Json.toJson(hipResponseNoPaymentReference)
               Future.successful(Ok(json))
+            case u if u == utrWithNegativeBalances =>
+              Future.successful(Ok(Json.toJson(hipResponseNegativeBalances)))
             case _ =>
               try {
                 val hipResponse: HipResponse = service.generateHipResponse(dateFrom, dateTo)
