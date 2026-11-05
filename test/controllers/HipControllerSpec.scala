@@ -118,7 +118,9 @@ class HipControllerSpec extends AnyWordSpec with Matchers {
       (json \ "balanceDetails" \ "totalPendingBalance").as[BigDecimal] shouldBe BigDecimal(-75)
       (json \ "balanceDetails" \ "totalBalance").as[BigDecimal] shouldBe BigDecimal(-225)
       (json \ "balanceDetails" \ "totalCreditAvailable").as[BigDecimal] shouldBe BigDecimal(-25)
-      (json \ "paymentHistoryDetails" \ 0 \ "paymentAmount").as[BigDecimal] shouldBe BigDecimal(-500)
+      (json \ "paymentHistoryDetails" \ 0 \ "paymentAmount").as[BigDecimal] shouldBe BigDecimal(
+        -500
+      )
     }
 
     "return 400 BAD_REQUEST with correct error message for invalid correlation ID" in {
