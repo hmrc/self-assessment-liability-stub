@@ -107,4 +107,29 @@ object HipResponseConstants {
     paymentHistoryDetails = List.empty
   )
 
+  val hipResponseNegativeBalances: HipResponse = HipResponse(
+    balanceDetails = BalanceDetails(
+      totalOverdueBalance = -50,
+      totalPayableBalance = -100,
+      earliestPayableDueDate = Some(today().plusDays(10)),
+      totalPendingBalance = -75,
+      earliestPendingDueDate = Some(today().plusDays(60)),
+      totalBalance = -225,
+      totalCreditAvailable = -25,
+      codedOutDetail = List.empty
+    ),
+    chargeDetails = List.empty,
+    refundDetails = List.empty,
+    paymentHistoryDetails = List(
+      PaymentHistoryDetails(
+        paymentAmount = -500.00,
+        paymentReference = Some("negative-payment-test"),
+        paymentMethod = Some("bank transfer"),
+        paymentDate = LocalDate.of(2023, 2, 15),
+        processedDate = Some(LocalDate.of(2023, 2, 16)),
+        allocationReference = Some("charge-negative-123")
+      )
+    )
+  )
+
 }
